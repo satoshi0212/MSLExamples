@@ -21,6 +21,7 @@
 		ABAE31C4240BC53A00458EA3 /* Day50-59.metal in Sources */ = {isa = PBXBuildFile; fileRef = ABAE31C2240BC53A00458EA3 /* Day50-59.metal */; };
 		ABAE31C9240BC65B00458EA3 /* Day30-39.metal in Sources */ = {isa = PBXBuildFile; fileRef = ABAE31C7240BC65B00458EA3 /* Day30-39.metal */; };
 		ABAE31CA240BC65B00458EA3 /* Day01-30.metal in Sources */ = {isa = PBXBuildFile; fileRef = ABAE31C8240BC65B00458EA3 /* Day01-30.metal */; };
+		ABAE31CD240BE19A00458EA3 /* Day60-69.metal in Sources */ = {isa = PBXBuildFile; fileRef = ABAE31CB240BE19900458EA3 /* Day60-69.metal */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -41,6 +42,7 @@
 		ABAE31C2240BC53A00458EA3 /* Day50-59.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; path = "Day50-59.metal"; sourceTree = "<group>"; };
 		ABAE31C7240BC65B00458EA3 /* Day30-39.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; path = "Day30-39.metal"; sourceTree = "<group>"; };
 		ABAE31C8240BC65B00458EA3 /* Day01-30.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; path = "Day01-30.metal"; sourceTree = "<group>"; };
+		ABAE31CB240BE19900458EA3 /* Day60-69.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; path = "Day60-69.metal"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -94,6 +96,7 @@
 				ABAE31C7240BC65B00458EA3 /* Day30-39.metal */,
 				ABAE31C1240BC53A00458EA3 /* Day40-49.metal */,
 				ABAE31C2240BC53A00458EA3 /* Day50-59.metal */,
+				ABAE31CB240BE19900458EA3 /* Day60-69.metal */,
 				ABAE31B4240B98D400458EA3 /* VertexShader.metal */,
 				ABAE31B6240B98D400458EA3 /* Common.h */,
 				ABAE31B7240B98D400458EA3 /* Common.metal */,
@@ -183,6 +186,7 @@
 				ABAE31BC240B98D400458EA3 /* Common.metal in Sources */,
 				ABAE31CA240BC65B00458EA3 /* Day01-30.metal in Sources */,
 				ABAE31B9240B98D400458EA3 /* GPUDevice.swift in Sources */,
+				ABAE31CD240BE19A00458EA3 /* Day60-69.metal in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

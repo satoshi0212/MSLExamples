@@ -24,5 +24,6 @@ float grid(float2 p);
 metal::float2x2 rot(float radian);
 
 float rand(float2 n);
+float3 mod(float3 x, float3 y);
 
 #endif /* Common_h */

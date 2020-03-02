@@ -45,3 +45,7 @@ float2x2 rot(float radian) {
 float rand(float2 n) {
     return fract(sin(cos(dot(n, float2(12.9898, 12.1414)))) * 83758.5453);
 }
+
+float3 mod(float3 x, float3 y) {
+    return x - y * floor(x / y);
+}

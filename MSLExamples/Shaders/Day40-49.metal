@@ -85,10 +85,6 @@ fragment float4 shader_day41(float4 pixPos [[position]],
 
 // https://www.shadertoy.com/view/lljBWy
 
-float3 mod(float3 x, float3 y) {
-    return x - y * floor(x / y);
-}
-
 float3 permute(float3 x) {
     return mod(x * x * 34.0 + x, 289.0);
 }
