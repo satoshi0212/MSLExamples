@@ -236,6 +236,77 @@ fragment half4 shader_day28(float4 pixPos [[position]],
     return mix(half4(0.0), col, pow(glow * 2.0, 4.0));
 }
 
+// MARK: - Day28R
+
+// https://www.shadertoy.com/view/MdX3zr flame
+
+float noiseF(float3 p) {
+    float3 i = floor(p);
+    float4 a = dot(i, float3(1.0, 57.0, 21.0)) + float4(0.0, 57.0, 21.0, 78.0);
+    float3 f = cos((p - i) * acos(-1.0)) * (-0.5) + 0.5;
+    a = mix(sin(cos(a) * a), sin(cos(1.0 + a) * (1.0 + a)), f.x);
+    a.xy = mix(a.xz, a.yw, f.y);
+    return mix(a.x, a.y, f.z);
+}
+
+float sphere(float3 p, float4 spr) {
+    return length(spr.xyz-p) - spr.w;
+}
+
+float flame(float3 p, float time) {
+    float d = sphere(p*float3(1.,.5,1.), float4(.0,-1.,.0,1.));
+    return d + (noiseF(p+float3(.0, time * 2.0, 0.0)) + noiseF(p*3.)*.5)*.25*(p.y) ;
+}
+
+float scene(float3 p, float time) {
+    return min(100.0 - length(p), abs(flame(p, time)));
+}
+
+float4 raymarch(float3 org, float3 dir, float time) {
+    float d = 0.0, glow = 0.0, eps = 0.02;
+    float3 p = org;
+    bool glowed = false;
+    for (int i = 0; i < 64; i++) {
+        d = scene(p, time) + eps;
+        p += d * dir;
+        if (d > eps) {
+            if (flame(p, time) < .0)
+                glowed = true;
+            if (glowed)
+                glow = float(i) / 64.0;
+        }
+    }
+    return float4(p,glow);
+}
+
+fragment float4 shader_day28R(float4 pixPos [[position]],
+                              constant float2& res [[buffer(0)]],
+                              constant float& time[[buffer(1)]],
+                              texture2d<float, access::sample> noiseTexture [[texture(2)]]) {
+
+    float2 v = -1.0 + 2.0 * pixPos.xy / res.xy;
+    v.x *= res.x / res.y;
+    v.y *= -1.0;
+
+    float3 org = float3(0.0, -2.0, 4.0);
+    float3 dir = normalize(float3(v.x * 1.6, -v.y, -1.5));
+
+    float limits = 0.5;
+    float4 p = (v.x > -limits && v.x < limits) ? raymarch(org, dir, time) : float4(0.0);
+
+    float glow = p.w;
+    if (mod(time, 6.0) < 3.0) {
+        float4 col = mix(float4(1.0, 0.5, 0.1, 1.0), float4(0.1, 0.5, 1.0, 1.0), p.y * 0.02 + 0.4);
+        return mix(float4(0.0), col, pow(glow * 2.0, 4.0));
+    } else {
+        return mix(float4(1.0),
+                   mix(float4(1.0, 0.5, 0.1, 1.0),
+                       float4(0.1, 0.5, 1.0, 1.0),
+                       p.y * 0.02 + 0.4),
+                   pow(glow * 2.0, 4.0));
+    }
+}
+
 // MARK: - Day29
 
 float2 pmod(float2 p, float r) {
