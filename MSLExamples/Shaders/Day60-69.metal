@@ -762,3 +762,280 @@ fragment float4 shader_day64(float4 pixPos [[position]],
 
     return float4(col, col, col, 1.0);
 }
+
+// MARK: - Day65
+
+// https://www.shadertoy.com/view/ltj3Wc 毛筆
+
+float opU( float d1, float d2 ){ return min(d1,d2); }
+float opS( float d2, float d1 ){ return max(-d1,d2); }
+float opI( float d1, float d2) { return max(d1,d2); }
+
+float magicBox(float3 p) {
+    const int MAGIC_BOX_ITERS = 13;
+    const float MAGIC_BOX_MAGIC = 0.55;
+    p = 1.0 - abs(1.0 - mod(p, 2.0));
+    float lastLength = length(p);
+    float tot = 0.0;
+    for (int i = 0; i < MAGIC_BOX_ITERS; i++) {
+        p = abs(p) / (lastLength * lastLength) - MAGIC_BOX_MAGIC;
+        float newLength = length(p);
+        tot += abs(newLength - lastLength);
+        lastLength = newLength;
+    }
+    return tot;
+}
+
+float magicBox(float2 uv) {
+    const float3x3 M = float3x3(0.28862355854826727, 0.6997227302779844, 0.6535170557707412,
+                                0.06997493955670424, 0.6653237235314099, -0.7432683571499161,
+                                -0.9548821651308448, 0.26025457467376617, 0.14306504491456504);
+    float3 p = 0.5 * M * float3(uv, 0.0);
+    return magicBox(p);
+}
+
+float2x2 rot2D(float r) {
+    float c = cos(r);
+    float s = sin(r);
+    return float2x2(c, s, -s, c);
+}
+
+float nsin(float a) { return 0.5 + 0.5 * sin(a); }
+float ncos(float a) { return 0.5 + 0.5 * cos(a); }
+
+float rand65(float2 co) {
+    return fract(sin(dot(co.xy ,float2(12.9898,78.233))) * 43758.5453);
+}
+
+float rand65(float n) {
+    return fract(cos(n * 89.42) * 343.42);
+}
+
+float dtoa(float d, float amount) {
+    return clamp(1.0 / (clamp(d, 1.0 / amount, 1.0) * amount), 0.0, 1.0);
+}
+
+float sdAxisAlignedRect(float2 uv, float2 tl, float2 br) {
+    float2 d = max(tl - uv, uv - br);
+    return length(max(float2(0.0), d)) + min(0.0, max(d.x, d.y));
+}
+
+float sdCircle(float2 uv, float2 origin, float radius) {
+    return length(uv - origin) - radius;
+}
+
+float smoothstep4(float e1, float e2, float e3, float e4, float val) {
+    return min(smoothstep(e1, e2, val), 1.0 - smoothstep(e3, e4, val));
+}
+
+float2 hash65(float2 p) {
+    p = float2(dot(p, float2(127.1, 311.7)),
+               dot(p, float2(269.5, 183.3)));
+    return -1.0 + 2.0 * fract(sin(p) * 43758.5453123);
+}
+
+float noise65(float2 p) {
+    const float K1 = 0.366025404;
+    const float K2 = 0.211324865;
+    float2 i = floor(p + (p.x + p.y) * K1);
+    float2 a = p - i + (i.x + i.y) * K2;
+    float2 o = (a.x > a.y) ? float2(1.0, 0.0) : float2(0.0, 1.0);
+    float2 b = a - o + K2;
+    float2 c = a - 1.0 + 2.0 * K2;
+    float3 h = max(0.5 - float3(dot(a, a), dot(b, b), dot(c, c)), 0.0);
+    float3 n = h * h * h * h * float3(dot(a, hash65(i + 0.0)), dot(b, hash65(i + o)), dot(c, hash65(i + 1.0)));
+    return dot(n, float3(70.0));
+}
+
+float noise01(float2 p) {
+    return clamp((noise65(p) + 0.5) * 0.5, 0.0, 1.0);
+}
+
+float3 dtocolor(float3 inpColor, float dist) {
+    float3 ret;
+    if (dist > 0.0)
+        ret = mix(float3(0,0, 0.5), float3(0.5, 0.5, 1.0), sin(dist * M_PI_F * 2 * 50.0));
+    else
+        ret = mix(float3(1.0, 0.5, 0.5), float3(0.5, 0.0, 0.0), sin(dist * M_PI_F * 2 * 50.0));
+    ret = mix(ret, float3(0), clamp(abs(dist), 0.0, 1.0));
+    return ret;
+}
+
+float smoothf(float x) {
+    return x * x * x * (x * (x * 6.0 - 15.0) + 10.0);
+}
+
+float3 colorBrushStroke(float2 res, float2 uvLine, float2 uvPaper, float2 lineSize, float sdGeometry, float3 inpColor, float4 brushColor) {
+    float posInLineY = (uvLine.y / lineSize.y);
+
+    if (posInLineY > 0.0) {
+        float mouseX = 0.2;//iMouse.x == 0. ? 0.2 : (iMouse.x / iResolution.x);
+        posInLineY = pow(posInLineY, (pow(mouseX, 2.0) * 15.0) + 1.5);
+    }
+
+    float strokeBoundary = dtoa(sdGeometry, 300.0);
+    float strokeTexture = 0.0
+    + noise01(uvLine * float2(min(res.y, res.x) * 0.2, 1.0))
+    + noise01(uvLine * float2(79.0, 1.0))
+    + noise01(uvLine * float2(14.0, 1.0))
+    ;
+    strokeTexture *= 0.333 * strokeBoundary;
+    strokeTexture = max(0.008, strokeTexture);
+    float strokeAlpha = pow(strokeTexture, max(0.,posInLineY) + 0.09);
+    const float strokeAlphaBoost = 1.09;
+    if(posInLineY > 0.)
+        strokeAlpha = strokeAlphaBoost * max(0., strokeAlpha - pow(posInLineY,0.5));
+    else
+        strokeAlpha *= strokeAlphaBoost;
+
+    strokeAlpha = smoothf(strokeAlpha);
+
+    float paperBleedAmt = 60.0 + (rand65(uvPaper.y) * 30.0) + (rand65(uvPaper.x) * 30.0);
+
+    float alpha = strokeAlpha * brushColor.a * dtoa(sdGeometry, paperBleedAmt);
+    alpha = clamp(alpha, 0.0, 1.0);
+    return mix(inpColor, brushColor.rgb, alpha);
+}
+
+float3 colorBrushStrokeLine(float2 res, float2 uv, float3 inpColor, float4 brushColor, float2 p1_, float2 p2_, float lineWidth) {
+    float lineAngle = M_PI_F - atan2(p1_.x - p2_.x, p1_.y - p2_.y);
+    float2x2 rotMat = rot2D(lineAngle);
+    float lineLength = distance(p2_, p1_);
+    float2 tl = (p1_ * rotMat);
+    float2 br = tl + float2(0.0, lineLength);
+    float2 uvLine = uv * rotMat;
+
+    lineWidth *= mix(1.0, 0.9, smoothstep(tl.y, br.y, uvLine.y));
+
+    uvLine.x += (noise01(uvLine * 1.0) - 0.5) * 0.02;
+    uvLine.x += cos(uvLine.y * 3.0) * 0.009;
+    uvLine.x += (noise01(uvLine * 5.0) - 0.5) * 0.005;
+
+    float d = sdAxisAlignedRect(uvLine, tl, br) - lineWidth / 2.0;
+    uvLine = tl - uvLine;
+
+    float2 lineSize = float2(lineWidth, lineLength);
+    float3 ret = colorBrushStroke(res, float2(uvLine.x, -uvLine.y), uv, lineSize, d, inpColor, brushColor);
+    return ret;
+}
+
+float3 humanizeBrushStrokeDonut(float2 uvLine, float radius_, bool clockwise, float lineLength) {
+    float2 humanizedUVLine = uvLine;
+
+    float twistAmt = 0.24;
+    float linePosY = humanizedUVLine.y / lineLength;
+    humanizedUVLine.x += linePosY * twistAmt;
+
+    float humanizedRadius = radius_;
+    humanizedRadius += (noise01(uvLine * 1.0) - 0.5) * 0.04;
+    humanizedRadius += sin(uvLine.y * 3.0) * 0.019;
+    humanizedUVLine.x += sin(uvLine.x * 30.0) * 0.02;
+    humanizedUVLine.x += (noise01(uvLine * 5.0) - 0.5) * 0.005;
+
+    return float3(humanizedUVLine, humanizedRadius);
+}
+
+float3 colorBrushStrokeDonut(float2 res, float2 uv, float3 inpColor, float4 brushColor, float2 o, float radius_, float angleStart, float sweepAmt, float lineWidth, bool clockwise) {
+    float2 uvLine = uv - o;
+    float angle = atan2(uvLine.x, uvLine.y) + M_PI_F;
+    angle = mod(angle - angleStart + M_PI_F, M_PI_F * 2);
+    if (!clockwise)
+        angle = M_PI_F * 2 - angle;
+    float lineLength = radius_ * M_PI_F * 2;
+    uvLine = float2(radius_ - length(uvLine), angle / (M_PI_F * 2 * lineLength));
+
+    float lineWidth1 = lineWidth * mix(1.0, 0.9, smoothstep(0.0, lineLength, uvLine.y));
+
+    float3 hu = humanizeBrushStrokeDonut(uvLine, radius_, clockwise, lineLength);
+    float2 humanizedUVLine = hu.xy;
+    float humanizedRadius = hu.z;
+
+    float d = opS(sdCircle(uv, o, humanizedRadius),
+                  sdCircle(uv, o, humanizedRadius));
+    d -= lineWidth1 * 0.5;
+
+    float3 ret = colorBrushStroke(res, humanizedUVLine, uv, float2(lineWidth1, lineLength), d, inpColor, brushColor);
+
+    float3 ret2 = float3(1.0);
+    if (angle > M_PI_F) {
+        uvLine.y -= lineLength;
+        hu = humanizeBrushStrokeDonut(uvLine, radius_, clockwise, lineLength);
+        humanizedUVLine = hu.xy;
+        humanizedRadius = hu.z;
+        float2 strokeStartPos = o + float2(sin(angleStart), cos(angleStart)) * humanizedRadius;
+        d = distance(uv, strokeStartPos);
+        d -= lineWidth * 0.5 * 1.0;
+        ret2 = colorBrushStroke(res, humanizedUVLine, uv, float2(lineWidth, lineLength), d, inpColor, brushColor);
+    }
+    return min(ret, ret2);
+}
+
+float2 getuv_centerX(float2 res, float2 pixPos, float2 newTL, float2 newSize) {
+    float2 ret = float2(pixPos.x / res.x, (res.y - pixPos.y) / res.y);
+    ret *= newSize;
+    float aspect = res.x / res.y;
+    ret.x *= aspect;
+    float newWidth = newSize.x * aspect;
+    return ret + float2(newTL.x - (newWidth - newSize.x) / 2.0, newTL.y);
+}
+
+fragment float4 shader_day65(float4 pixPos [[position]],
+                             constant float2& res [[buffer(0)]],
+                             constant float& time[[buffer(1)]]) {
+
+    float2 uv = getuv_centerX(res, pixPos.xy, float2(-1.0, -1.0), float2(2.0, 2.0));
+    uv.y *= -1.0;
+
+    float2 uvSignature = (pixPos.xy / res.y * 2.0) - 1.0;
+    uvSignature.y *= -1.0;
+
+    float3 col = float3(1.0, 1.0, 0.875);
+    float dist;
+
+    float yo = sin(-uv.x * M_PI_F * 0.5) * 0.2;
+    col = colorBrushStrokeLine(res, uv, col, float4(float3(0.8, 0.1, 0.0), 0.9),
+                               float2(-1.4, -0.4 + yo),
+                               float2(2.6, -0.4 + yo), 0.3);
+
+    col = colorBrushStrokeLine(res, uv, col, float4(float3(0.8, 0.1, 0.0), 0.4),
+                               float2(1.3, 0.0 + yo),
+                               float2(-2.9, 0.0 + yo), 0.03);
+
+    col = colorBrushStrokeLine(res, uv, col, float4(float3(0.8, 0.1, 0.0), 0.52),
+                               float2(1.3, 0.3 + yo + (cos(uv.x * 12.0) * 0.025)),
+                               float2(-2.9, 0.3 + yo), 0.1);
+
+
+    col = colorBrushStrokeDonut(res, uv, col, float4(0.0, 0.0, 0.0, 0.9),
+                                float2(0.0, 0.0),// origin
+                                0.6,// radius
+                                0.2,// angle of brush start
+                                0.5,// sweep amt 0-1
+                                0.3,// width
+                                false);// clockwise
+
+    // paint blotches
+    float blotchAmt = smoothstep(20.0, 50.0, magicBox((uv + 12.0) * 2.0));
+    blotchAmt = pow(blotchAmt, 3.0);
+    blotchAmt = 0.7 * smoothstep(0.2, 0.4, blotchAmt);
+    col *= 1.0 - blotchAmt;
+
+    // signature
+    dist = sdAxisAlignedRect(uvSignature, float2(-0.68), float2(-0.55));
+    float amt = 90.0 + (rand65(uvSignature.y) * 100.0) + (rand65(uvSignature.x / 4.0) * 90.0);
+    float vary = sin(uvSignature.x * uvSignature.y * 50.0) * 0.0047;
+    dist = opS(dist - 0.028 + vary, dist - 0.019 - vary);
+    col = mix(col, float3(0.8, 0.1, 0.0), dtoa(dist, amt) * 0.3);
+    col = mix(col, float3(0.8, 0.1, 0.0), dtoa(dist, amt * 4.0) * 0.95);
+
+    // grain
+    col.rgb += (rand65(uv) - 0.5) * 0.08;
+    col.rgb = clamp(col.rgb, 0.0, 1.0);
+
+    // vignette
+    float2 uvScreen = (pixPos.xy / res.xy * 2.0) - 1.0;
+    float vignetteAmt = 1.0 - dot(uvScreen * 0.5, uvScreen * 0.62);
+    col *= vignetteAmt;
+
+    return float4(col, 1.0);
+}
