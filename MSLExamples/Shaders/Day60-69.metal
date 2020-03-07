@@ -1071,3 +1071,49 @@ fragment float4 shader_day66(float4 pixPos [[position]],
     color *= sqrt(1.5 - 0.5 * length(uv));
     return float4(color, 1.0);
 }
+
+// MARK: - Day67
+
+// https://www.shadertoy.com/view/MdSGDm Motion blur
+
+float3 diskWithMotionBlur(float3 pcol, float2 puv, float3 dpr, float2 dv, float3 dcol) {
+    float2 xc = puv - dpr.xy;
+    float a = dot(dv, dv);
+    float b = dot(dv, xc);
+    float c = dot(xc, xc) - dpr.z * dpr.z;
+    float h = b * b - a * c;
+    if (h > 0.0) {
+        h = sqrt( h );
+        float ta = max(0.0, (-b - h) / a);
+        float tb = min(1.0, (-b + h) / a);
+        if (ta < tb)
+            pcol = mix(pcol, dcol, clamp(2.0 * (tb - ta), 0.0, 1.0));
+    }
+    return pcol;
+}
+
+float3 hash3( float n ) { return fract(sin(float3(n, n + 1.0, n + 2.0)) * 43758.5453123); }
+float4 hash4( float n ) { return fract(sin(float4(n, n + 1.0, n + 2.0, n + 3.0)) * 43758.5453123); }
+
+float2 getPosition( float time, float4 id ) { return float2(       0.9 * sin((8.0 * (0.75 + 0.5 * id.z)) * time + 20.0 * id.x),        0.75 * cos(8.0 * (0.75 + 0.5 * id.w) * time + 20.0 * id.y)); }
+float2 getVelocity( float time, float4 id ) { return float2( 8.0 * 0.9 * cos((8.0 * (0.75 + 0.5 * id.z)) * time + 20.0 * id.x), -8.0 * 0.75 * sin(8.0 * (0.75 + 0.5 * id.w) * time + 20.0 * id.y)); }
+
+fragment float4 shader_day67(float4 pixPos [[position]],
+                             constant float2& res [[buffer(0)]],
+                             constant float& time[[buffer(1)]]) {
+
+    float2 p = (2.0 * pixPos.xy - res.xy) / res.y;
+    float3 col = float3(0.03) + 0.015 * p.y;
+
+    for (int i = 0; i < 16; i++) {
+        float4 off = hash4(float(i) * 13.13);
+        float3 sph = float3(getPosition(time, off), 0.02 + 0.1 * off.x);
+        float2 dv = getVelocity(time, off) /24.0;
+        float3 sphcol = 0.55 + 0.45 * sin(3.0 * off.z + float3(4.0, 0.0, 2.0));
+        col = diskWithMotionBlur(col, p, sph, dv, sphcol);
+    }
+
+    col = pow(col, float3(0.4545));
+    col += (1.0 / 255.0) * hash3(p.x + 13.0 * p.y);
+    return float4(col, 1.0);
+}
