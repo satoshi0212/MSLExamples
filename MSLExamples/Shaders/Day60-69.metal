@@ -1117,3 +1117,38 @@ fragment float4 shader_day67(float4 pixPos [[position]],
     col += (1.0 / 255.0) * hash3(p.x + 13.0 * p.y);
     return float4(col, 1.0);
 }
+
+// MARK: - Day68
+
+// https://www.shadertoy.com/view/XsfGWB Loading
+
+fragment float4 shader_day68(float4 pixPos [[position]],
+                             constant float2& res [[buffer(0)]],
+                             constant float& time[[buffer(1)]]) {
+
+    float3 col = float3(0.2, 0.2, 0.2);
+
+    float2 p = (-1.0 + 2.0 * pixPos.xy / res.xy) * float2(res.x / res.y, 1.0);
+    float2 q = p + 0.1;
+
+    float t = mod(time, 8.0);
+    if (t < 4.0) {
+        q *= 1.0 + 0.3 * q.x;
+    }
+    float r = length(q);
+    float a = atan2(q.y, q.x) + 1.0 * time;
+    col = mix(col, float3(0.1), (1.0 - smoothstep(0.0, 0.24, abs(r - 0.5))) * smoothstep(-1.0, 1.0, sin(17.0 * a)));
+
+    if (t < 4.0) {
+        p *= 1.0 + 0.3 * p.x;
+    }
+    r = length(p);
+    a = atan2(p.y,p.x) + 1.0 * time;
+    col = mix(col, float3(1.0, 1.0, 1.0), (1.0 - smoothstep(0.10, 0.14, abs(r - 0.5))) * smoothstep(0.4, 1.0, sin(17.0 * a)));
+
+    float gl = 0.6 + 0.4 * sin(0.5 * 6.2831 * time);
+    col += gl * float3(1.0, 0.5, 0.2) * (1.0 - smoothstep(0.10, 0.20, abs(r - 0.5))) * smoothstep(-1.0, 0.5, sin(17.0 * a));
+
+    return float4(col, 1.0);
+}
+
