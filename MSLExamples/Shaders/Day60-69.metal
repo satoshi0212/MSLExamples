@@ -1152,3 +1152,174 @@ fragment float4 shader_day68(float4 pixPos [[position]],
     return float4(col, 1.0);
 }
 
+// MARK: - Day69
+
+// https://www.shadertoy.com/view/MsSGD1 手書きスケッチ風
+
+#define EDGE_WIDTH 0.15
+#define RAYMARCH_ITERATIONS 40
+#define SHADOW_ITERATIONS 50
+#define SHADOW_STEP 1.0
+#define SHADOW_SMOOTHNESS 256.0
+#define SHADOW_DARKNESS 0.75
+
+// Distance functions by www.iquilezles.org
+float fSubtraction(float a, float b) {return max(-a,b);}
+float fIntersection(float d1, float d2) {return max(d1,d2);}
+float fUnion(float d1, float d2) {
+    d1 = min(d1, d2);
+    return d1;
+}
+float pSphere(float3 p, float s) {return length(p)-s;}
+float pRoundBox(float3 p, float3 b, float r) {return length(max(abs(p)-b,0.0))-r;}
+float pTorus(float3 p, float2 t) {float2 q = float2(length(p.xz)-t.x,p.y); return length(q)-t.y;}
+float pTorus2(float3 p, float2 t) {float2 q = float2(length(p.xy)-t.x,p.z); return length(q)-t.y;}
+float pCapsule(float3 p, float3 a, float3 b, float r) {float3 pa = p - a, ba = b - a;
+float h = clamp( dot(pa,ba)/dot(ba,ba), 0.0, 1.0 ); return length( pa - ba*h ) - r;}
+
+float distf(float3 p) {
+    float d = 100000.0;
+
+    d = fUnion(d, pRoundBox(float3(0,0,10) + p, float3(21,21,1), 1.0));
+    d = fUnion(d, pSphere(float3(10,10,0) + p, 8.0));
+    d = fUnion(d, pSphere(float3(16,0,4) + p, 4.0));
+    d = fUnion(d, pCapsule(p, float3(10,10,12), float3(15,15,-6.5), 1.5));
+    d = fUnion(d, pCapsule(p, float3(10,10,12), float3(5,15,-6.5), 1.5));
+    d = fUnion(d, pCapsule(p, float3(10,10,12), float3(10,5,-6.5), 1.5));
+    d = fUnion(d, pTorus(float3(15,-15,0) + p, float2(6,2)));
+    d = fUnion(d, pTorus2(float3(10,-15,0) + p, float2(6,2)));
+    d = fUnion(d, pRoundBox(float3(-10,10,-2) + p, float3(1,1,9), 1.0));
+    d = fUnion(d, pRoundBox(float3(-10,10,-4) + p, float3(0.5,6,0.5), 1.0));
+    d = fUnion(d, pRoundBox(float3(-10,10,2) + p, float3(6,0.5,0.5), 1.0));
+
+    return d;
+}
+
+float3 normal(float3 p) {
+    const float eps = 0.01;
+    float3 n = float3((distf(float3(p.x-eps,p.y,p.z)) - distf(float3(p.x+eps,p.y,p.z))),
+                      (distf(float3(p.x,p.y-eps,p.z)) - distf(float3(p.x,p.y+eps,p.z))),
+                      (distf(float3(p.x,p.y,p.z-eps)) - distf(float3(p.x,p.y,p.z+eps)))
+                      );
+    return normalize(n);
+}
+
+float4 raymarch(float3 from, float3 increment) {
+    const float maxDist = 200.0;
+    const float minDist = 0.001;
+    const int maxIter = RAYMARCH_ITERATIONS;
+
+    float dist = 0.0;
+
+    float lastDistEval = 1e10;
+    float edge = 0.0;
+
+    for(int i = 0; i < maxIter; i++) {
+        float3 pos = (from + increment * dist);
+        float distEval = distf(pos);
+
+        if (lastDistEval < EDGE_WIDTH && distEval > lastDistEval + 0.001) {
+            edge = 1.0;
+        }
+
+        if (distEval < minDist) {
+            break;
+        }
+
+        dist += distEval;
+        if (distEval < lastDistEval) lastDistEval = distEval;
+    }
+
+    float mat = 1.0;
+    if (dist >= maxDist) mat = 0.0;
+
+    return float4(dist, mat, edge, 0);
+}
+
+float shadow(float3 from, float3 increment) {
+    const float minDist = 1.0;
+
+    float res = 1.0;
+    float t = 1.0;
+    for(int i = 0; i < SHADOW_ITERATIONS; i++) {
+        float h = distf(from + increment * t);
+        if(h < minDist)
+            return 0.0;
+
+        res = min(res, SHADOW_SMOOTHNESS * h / t);
+        t += SHADOW_STEP;
+    }
+    return res;
+}
+
+float rand(float x) {
+    return fract(sin(x) * 43758.5453);
+}
+
+float triangle(float x) {
+    return abs(1.0 - mod(abs(x), 2.0)) * 2.0 - 1.0;
+}
+
+float4 getPixel(float2 p, float3 from, float3 increment, float3 light, float time) {
+    float4 c = raymarch(from, increment);
+    float3 hitPos = from + increment * c.x;
+    float3 normalDir = normal(hitPos);
+
+    float diffuse = 1.0 + min(0.0, dot(normalDir, -light));
+    float inshadow = 0.0;
+
+    diffuse = max(diffuse, inshadow);
+
+    if (c.y == 0.0) diffuse = min(pow(length(p), 4.0) * 0.125,1.0);
+
+    float xs = (rand(time * 6.6) * 0.1 + 0.9);
+    float ys = (rand(time * 6.6) * 0.1 + 0.9);
+    float hatching = max((clamp((sin(p.x * xs * (170.0 + rand(time) * 30.0) +
+                                     p.y * ys * (110.0 + rand(time * 1.91) * 30.0)) * 0.5 + 0.5) -
+                                (1.0 - diffuse), 0.0, 1.0)),
+                         (clamp((sin(p.x * xs * (-110.0 + rand(time * 4.74) * 30.0) +
+                                     p.y * ys * (170.0 + rand(time * 3.91) * 30.0)) * 0.5 + 0.5) -
+                                (1.0 - diffuse) - 0.4, 0.0, 1.0)));
+
+    float4 mCol = mix(float4(1.0, 0.9, 0.8, 1.0), float4(1.0, 0.9, 0.8, 1.0) * 0.5, hatching);
+
+    return mix(mCol,float4(1.0, 0.9, 0.8, 1.0) * 0.5,c.z);
+}
+
+fragment float4 shader_day69(float4 pixPos [[position]],
+                             constant float2& res [[buffer(0)]],
+                             constant float& time2 [[buffer(1)]]) {
+
+    float time = floor(time2 * 16.0) / 16.0;
+    float2 q = pixPos.xy / res.xy;
+    float2 p = -1.0 + 2.0 * q;
+    p.x *= - res.x / res.y;
+    p += float2(triangle(p.y * rand(time) * 4.0) * rand(time * 1.9) * 0.015,
+                triangle(p.x * rand(time * 3.4) * 4.0) * rand(time * 2.1) * 0.015);
+    p += float2(rand(p.x * 3.1 + p.y * 8.7) * 0.01,
+                rand(p.x * 1.1 + p.y * 6.7) * 0.01);
+
+    p.y *= -1.0;
+
+    float2 m = float2(time * 0.06 + 1.67, 0.78);
+    m = -1.0 + 2.0 * m;
+    m *= float2(4.0,-0.75);
+    m.y += 0.75;
+
+    // camera position
+    float dist = 50.0;
+    float3 ta = float3(0.0, 0.0, 0.0);
+    float3 ro = float3(cos(m.x) * cos(m.y) * dist, sin(m.x) * cos(m.y) * dist, sin(m.y) * dist);
+    float3 light = float3(cos(m.x - 2.27) * 50.0, sin(m.x - 2.27) * 50.0, -20.0);
+
+    // camera direction
+    float3 cw = normalize(ta - ro);
+    float3 cp = float3(0.0, 0.0, 1.0);
+    float3 cu = normalize(cross(cw, cp));
+    float3 cv = normalize(cross(cu, cw));
+    float3 rd = normalize(p.x * cu + p.y * cv + 2.5 * cw);
+
+    // calculate color
+    float4 col = getPixel(p, ro, rd, normalize(light), time);
+    return col;
+}
