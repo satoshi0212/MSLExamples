@@ -210,3 +210,105 @@ fragment float4 shader_day72(float4 pixPos [[position]],
     return float4(ret, 1.0);
 }
 
+// MARK: - Day73
+
+// https://www.shadertoy.com/view/wlGXWt Heart beat
+
+float remap01(float t, float a, float b) {
+    return (t - a) / (b - a);
+}
+
+float Circle(float2 uv, float2 position, float radius, float blur) {
+    float distance = length(uv - position);
+    return smoothstep(radius, radius - blur, distance);
+}
+
+float gridLines(float t, float lines) {
+    return step(fract(t * lines), 0.05);
+}
+
+float3 Ring(float2 uv, float2 position) {
+    float ring = Circle(uv, position, 0.08, 0.01);
+    ring -= Circle(uv, position, 0.065, 0.01);
+    return float3(0.10, 0.24, 0.25) * ring;
+}
+
+float spike(float x, float d, float w, float raiseBy) {
+    float f1 = pow(abs(x + (d * 2.0)), raiseBy);
+    return exp(-f1 / w);
+}
+
+float generateEGC(float x) {
+    x -= 0.5 * 2.0;
+
+    float a = 0.4 * 2.0;
+    float d = 0.3;
+    float w = 0.001;
+
+    float f1 = a * spike(x, d, w, 2.0);
+    float f2 = a * spike(x, d - 0.1, 2.0 * w, 2.0);
+    float f3 = a * 0.7 * spike(x, d - 0.3, 0.002, 2.0);
+    float f3a = 0.15 * spike(x, d - 0.37, 0.0001, 4.0);
+    float f4 = 0.25 * spike(x, d - 0.5, 0.005, 2.0);
+    float f5 = 0.1 * spike(x, d - 0.75, 0.0001, 4.0);
+
+    float f6 = a * spike(x, d - 1.0, 0.002, 2.0);
+    float f7 = 0.5 * spike(x, d - 1.1, w, 2.0);
+
+    float f8 = 0.1 * spike(x, d - 1.3, 0.0001, 4.0);
+    float f9 = 0.1 * spike(x, d - 1.45, 0.0001, 4.0);
+
+    return f1 - f2 + f3 + f3a - f4 + f5 + f6 - f7 - f8 + f9;
+}
+
+float getDotXPosition(float time) {
+    float dotX = fract(time / 5.0);
+    dotX *= 2. * 2.0;
+    return dotX;
+}
+
+float3 MovingDot(float2 uv, float2 dotPosition) {
+    float movingDot = Circle(uv, dotPosition, 0.015, 0.01);
+    float smallBlurredDot = Circle(uv, dotPosition, 0.06, 0.1);
+    float bigBlurredDot = Circle(uv, dotPosition, 0.3, 0.6);
+
+    float3 color = float3(1.0, 1.0, 1.0) * movingDot;
+    color += float3(0.15, 0.68, 0.83) * smallBlurredDot;
+    color += float3(0.15, 0.68, 0.83) * bigBlurredDot;
+    color += Ring(uv, dotPosition);
+
+    return color;
+}
+
+fragment float4 shader_day73(float4 pixPos [[position]],
+                             constant float2& res [[buffer(0)]],
+                             constant float& time[[buffer(1)]]) {
+
+    float2 uv = pixPos.xy / res.xy;
+    uv *= 2.0;
+    uv.y -= .5 * 2.0;
+    uv.x *= res.x / res.y;
+
+    float grid = gridLines(uv.x, 6.0) + gridLines(uv.y, 6.0);
+    float3 color = float3(0.01, 0.07, 0.06) * grid;
+
+    float dotX = getDotXPosition(time);
+    float2 dotPosition = float2(dotX, generateEGC(dotX));
+
+    color += MovingDot(uv, dotPosition);
+
+    for (int i = 1; i < 24; i++) {
+        float delayedX = dotX - (float(i) * 0.042);
+        float2 trailPosition = float2(delayedX, generateEGC(delayedX));
+
+        float trail = Circle(uv, trailPosition, 0.028, 0.1);
+        float trailBlur = Circle(uv, trailPosition, 0.06, 0.5);
+
+        float q = 1.0 - remap01(float(i), 1.0, float(20));
+
+        color += (float3(1.0, 1.0, 1.0) * q) * trail;
+        color += trailBlur * (float3(0.15, 0.68, 0.83) * q);
+    }
+
+    return float4(color, 1.0);
+}
