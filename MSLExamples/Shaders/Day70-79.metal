@@ -312,3 +312,67 @@ fragment float4 shader_day73(float4 pixPos [[position]],
 
     return float4(color, 1.0);
 }
+
+// MARK: - Day74
+
+// https://www.shadertoy.com/view/XdcGD4 マトリックス的
+
+#define N_CHARS 8.0   // how many characters are in the character image
+#define Y_PIXELS 18.0 // reduce input image to this many mega-pixels across
+#define DROP_SPEED 0.15
+#define ASPECT 2.7    // aspect ratio of input webcam image
+
+#define MIN_DROP_SPEED 0.2 // range 0-1.  is added to column speeds to avoid stopped columns.
+#define STATIC_STRENGTH 0.1 // range 0-1.  how intense is the tv static
+#define SCANLINE_STRENGTH 0.4 // range 0-1.  how dark are the tv scanlines
+#define NUM_SCANLINES 70.0 // how many scanlines
+
+float rand2d(float2 v) {
+    return fract(sin(dot(v.xy, float2(12.9898, 78.233))) * 43758.5453);
+}
+
+float rand74(float x) {
+    return fract(sin(x) * 3928.2413);
+}
+
+fragment float4 shader_day74(float4 pixPos [[position]],
+                             constant float2& res [[buffer(0)]],
+                             constant float& time[[buffer(1)]],
+                             texture2d<float, access::sample> texture [[texture(1)]],
+                             texture2d<float, access::sample> noiseTexture [[texture(2)]]) {
+
+    constexpr sampler s(address::clamp_to_edge, filter::linear);
+    float2 uv = pixPos.xy / res.xy;
+
+    float xPix = floor(uv.x * Y_PIXELS * ASPECT) / Y_PIXELS / ASPECT;
+    float yOffs = mod(time * DROP_SPEED * (rand74(xPix) + MIN_DROP_SPEED), 1.0);
+    float yPix = floor((uv.y + yOffs) * Y_PIXELS) / Y_PIXELS - yOffs;
+    float2 uvPix = float2(xPix, yPix);
+
+    float4 pixelColor = texture.sample(s, uvPix);
+
+    float2 uvInPix = float2(
+                            mod(uv.x * Y_PIXELS, 1.0),
+                            mod((uv.y + yOffs) * Y_PIXELS, 1.0)
+                            );
+
+    float charOffset = floor(pixelColor.r * N_CHARS) / N_CHARS;
+    uvInPix.x = uvInPix.x / N_CHARS + charOffset;
+    float4 charColor = noiseTexture.sample(s, uvInPix);
+
+    float result = charColor.r * pixelColor.r;
+
+    result *= 1.0 - SCANLINE_STRENGTH * (sin(uv.y * NUM_SCANLINES * 3.14159 * 2.0) / 2.0 + 0.5);
+
+    float4 outColor = float4(
+                             max(0.0, result * 3.0 - 1.2),
+                             result * 1.6,
+                             max(0.0, result * 3.0 - 1.5),
+                             1.0
+                             );
+
+    float stat = rand2d(uv * float2(0.0005,1.0) + time * 0.1) * STATIC_STRENGTH;
+    outColor += stat;
+
+    return outColor;
+}
