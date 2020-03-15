@@ -376,3 +376,26 @@ fragment float4 shader_day74(float4 pixPos [[position]],
 
     return outColor;
 }
+
+// MARK: - Day75
+
+// https://www.shadertoy.com/view/Mtf3Dl Strong colored
+
+fragment float4 shader_day75(float4 pixPos [[position]],
+                             constant float2& res [[buffer(0)]],
+                             constant float& time[[buffer(1)]],
+                             texture2d<float, access::sample> texture [[texture(1)]]) {
+
+    constexpr sampler s(address::clamp_to_edge, filter::linear);
+    float2 uv = pixPos.xy / res.xy;
+    float4 tex = texture.sample(s, uv);
+
+    float TAU = 6.28;
+    float freq1 = 10.3;
+    float freq2 = 22.2;
+    float freq3 = 10.7;
+
+    return ((cos(abs(tex) * TAU * freq1) + 1.0) / 2.0)
+    * ((cos(abs(tex) * TAU * freq2) + 1.0) / 2.0)
+    * ((sin(abs(tex) * TAU * freq3) + 1.0) / 2.0);
+}
