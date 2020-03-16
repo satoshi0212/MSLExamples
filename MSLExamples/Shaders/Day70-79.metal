@@ -399,3 +399,31 @@ fragment float4 shader_day75(float4 pixPos [[position]],
     * ((cos(abs(tex) * TAU * freq2) + 1.0) / 2.0)
     * ((sin(abs(tex) * TAU * freq3) + 1.0) / 2.0);
 }
+
+// MARK: - Day76
+
+// https://www.shadertoy.com/view/ldfSW2 Shake
+
+float hash1(float x) {
+    return fract(sin(x * 11.1753) * 192652.37862);
+}
+
+float nse1(float x) {
+    float fl = floor(x);
+    return mix(hash1(fl), hash1(fl + 1.0), smoothstep(0.0, 1.0, fract(x)));
+}
+
+fragment float4 shader_day76(float4 pixPos [[position]],
+                             constant float2& res [[buffer(0)]],
+                             constant float& time[[buffer(1)]],
+                             texture2d<float, access::sample> texture [[texture(1)]]) {
+
+    constexpr sampler sa(address::clamp_to_edge, filter::linear);
+    float2 uv = pixPos.xy / res.xy;
+
+    float te = time * 9.0 / 16.0;
+    float s = time * 50.0;
+    uv += (float2(nse1(s), nse1(s + 11.0)) * 2.0 - 1.0) * exp(-5.0 * fract(te * 4.0)) * 0.1;
+    return float4(texture.sample(sa, uv).xyz, 1.0);
+}
+
