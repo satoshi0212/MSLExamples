@@ -510,3 +510,47 @@ fragment float4 shader_day77(float4 pixPos [[position]],
     ret = clamp(ret * (1.2 + sin(time) * 0.1), 0.0, 1.0);
     return float4(ret, 1.0);
 }
+
+// MARK: - Day78
+
+// https://www.shadertoy.com/view/3lK3zz Seigaiha
+
+fragment float4 shader_day78(float4 pixPos [[position]],
+                             constant float2& res [[buffer(0)]],
+                             constant float& time[[buffer(1)]]) {
+
+    float2 uv = (pixPos.xy - res.xy * 0.5) / min(res.x, res.y);
+    uv.y *= -1.0;
+
+    float scale = 5.0 + sin(time) * 0.25;
+    uv.y -= fract(time * 0.2) / scale;
+
+    float2 uvGrid = floor(uv * scale);
+    float uvYOffset = mod(uvGrid.x, 2.0) <= 0.0 ? 0.0 : 0.5;
+    float2 uvLocal = fract(uv * scale + float2(0.0, uvYOffset)) - float2(0.0, 0.5);
+    float dist = 1e+5;
+
+    // below grids (both sides only)
+    for (float x = -1.0; x < 2.0; x += 2.0)
+        dist = min(dist, distance(float2(x, -1.0), uvLocal));
+
+    // self grid
+    const float WAVE_DISTANCE = 1.0;
+    if (WAVE_DISTANCE < dist)
+        dist = min(dist, distance(float2(0.0, -0.5), uvLocal));
+
+    // center grids (both sides only)
+    if (WAVE_DISTANCE < dist)
+        for (float x = -1.0; x < 2.0; x += 2.0)
+            dist = min(dist, distance(float2(x, 0.0), uvLocal));
+
+    float3 ret = 0.0;
+    const float STRIPES = 8.0;
+    float stripeOffset = (-cos(fract(time * 0.5) * M_PI_F) * 0.5 + 0.5) * (4.0 * M_PI_F);
+    ret = (0.0 < sin(dist * STRIPES * M_PI_F - stripeOffset)) ? float3(1.0, 0.8, 0.4) : float3(1.0, 0.7, 0.2);
+
+    float uvYGradient = pixPos.y / res.y * -1.0;
+    ret *= uvYGradient * 0.4 + 1.0;
+
+    return float4(ret, 1.0);
+}
