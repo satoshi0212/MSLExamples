@@ -20,6 +20,7 @@ class ViewController: UIViewController {
     private var rgbaNoiseSmallTexture : MTLTexture! = nil
     private var rgbaNoiseTexture : MTLTexture! = nil
     private var rustyMetalTexture : MTLTexture! = nil
+    private var abstract1Texture : MTLTexture! = nil
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -35,10 +36,11 @@ class ViewController: UIViewController {
         rgbaNoiseSmallTexture = loadTexture(image: UIImage(named: "rgbaNoiseSmall")!, rect: CGRect(x: 0, y: 0, width: 64, height: 64))
         rgbaNoiseTexture = loadTexture(image: UIImage(named: "rgbaNoise")!, rect: CGRect(x: 0, y: 0, width: 256, height: 256))
         rustyMetalTexture = loadTexture(image: UIImage(named: "rustyMetal")!, rect: CGRect(x: 0, y: 0, width: 512, height: 512))
+        abstract1Texture = loadTexture(image: UIImage(named: "abstract1")!, rect: CGRect(x: 0, y: 0, width: 1024, height: 1024))
 
         let pipelineStateDescriptor = MTLRenderPipelineDescriptor()
         pipelineStateDescriptor.vertexFunction = GPUDevice.shared.vertexFunction
-        pipelineStateDescriptor.fragmentFunction = gpu.library.makeFunction(name: "shader_day78") // TODO: 文字列指定しているシェーダ名を一覧化
+        pipelineStateDescriptor.fragmentFunction = gpu.library.makeFunction(name: "shader_day79") // TODO: 文字列指定しているシェーダ名を一覧化
         pipelineStateDescriptor.colorAttachments[0].pixelFormat = .bgra8Unorm
 
         pipelineState = try! gpu.device.makeRenderPipelineState(descriptor: pipelineStateDescriptor)
@@ -123,6 +125,7 @@ extension ViewController : MTKViewDelegate {
         renderEncoder.setFragmentTexture(rgbaNoiseSmallTexture, index: 3)
         renderEncoder.setFragmentTexture(rgbaNoiseTexture, index: 4)
         renderEncoder.setFragmentTexture(rustyMetalTexture, index: 5)
+        renderEncoder.setFragmentTexture(abstract1Texture, index: 6)
 
         renderEncoder.drawPrimitives(type: .triangleStrip, vertexStart: 0, vertexCount: 4)
         renderEncoder.endEncoding()

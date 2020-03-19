@@ -554,3 +554,74 @@ fragment float4 shader_day78(float4 pixPos [[position]],
 
     return float4(ret, 1.0);
 }
+
+// MARK: - Day79
+
+// https://www.shadertoy.com/view/MsSGWK Water
+
+float water(float3 p, float time, sampler s, texture2d<float, access::sample> texture) {
+    float t = time / 4.0;
+    p.z += t * 2.0; p.x += t * 2.0;
+    float3 c1 = texture.sample(s, p.xz / 30.0).xyz;
+    p.z += t * 3.0; p.x += t * 0.5;
+    float3 c2 = texture.sample(s, p.xz / 30.0).xyz;
+    p.z += t * 4.0; p.x += t * 0.8;
+    float3 c3 = texture.sample(s, p.xz / 30.0).xyz;
+    c1 += c2 - c3;
+    float z = (c1.x + c1.y + c1.z) / 3.0;
+    return p.y + z / 4.0;
+}
+
+float map(float3 p, float time, sampler s, texture2d<float, access::sample> texture) {
+    float d = 100.0;
+    d = water(p, time, s, texture);
+    return d;
+}
+
+float intersect(float3 ro, float3 rd, float time, sampler s, texture2d<float, access::sample> texture) {
+    float d = 0.0;
+    for (int i = 0; i <= 100; i++) {
+        float h = map(ro + rd * d, time, s, texture);
+        if (h < 0.1) return d;
+        d += h;
+    }
+    return 0.0;
+}
+
+float3 norm(float3 p, float time, sampler s, texture2d<float, access::sample> texture) {
+    float eps = 0.1;
+    return normalize(float3(
+                            map(p + float3(eps, 0, 0), time, s, texture) - map(p + float3(-eps, 0, 0), time, s, texture),
+                            map(p + float3(0, eps, 0), time, s, texture) - map(p + float3(0, -eps, 0), time, s, texture),
+                            map(p + float3(0, 0, eps), time, s, texture) - map(p + float3(0, 0, -eps), time, s, texture)
+                            ));
+}
+
+fragment float4 shader_day79(float4 pixPos [[position]],
+                             constant float2& res [[buffer(0)]],
+                             constant float& time[[buffer(1)]],
+                             texture2d<float, access::sample> abstract1Texture [[texture(6)]]) {
+
+    constexpr sampler s(address::repeat, filter::linear);
+
+    float2 uv = pixPos.xy / res.xy - 0.5;
+    uv.y *= -1.0;
+    uv.x *= res.x / res.y;
+    float3 l1 = normalize(float3(1.0, 1.0, 1.0));
+    float3 ro = float3(-3.0, 7.0, -5.0);
+    float3 rc = float3(0.0, 0.0, 0.0);
+    float3 ww = normalize(rc - ro);
+    float3 uu = normalize(cross(float3(0.0, 1.0, 0.0), ww));
+    float3 vv = normalize(cross(rc - ro, uu));
+    float3 rd = normalize(uu * uv.x + vv * uv.y + ww);
+    float d = intersect(ro, rd, time, s, abstract1Texture);
+    float3 c = float3(0.0);
+    if (d > 0.0) {
+        float3 p = ro + rd * d;
+        float3 n = norm(p, time, s, abstract1Texture);
+        float spc = pow(max(0.0, dot(reflect(l1, n), rd)), 30.0);
+        float3 rfa = abstract1Texture.sample(s, (p + n).xz / 6.0).xyz * (8.0 / d);
+        c = rfa.xyz + spc + 0.1;
+    }
+    return float4(float3(c), 1.0);
+}
