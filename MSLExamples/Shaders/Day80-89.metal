@@ -665,3 +665,30 @@ fragment float4 shader_day81(float4 pixPos [[position]],
 
     return float4(color.rgb, 1.0);
 }
+
+// MARK: - Day82
+
+// https://www.shadertoy.com/view/ldB3Dh Depth like
+
+fragment float4 shader_day82(float4 pixPos [[position]],
+                             constant float2& res [[buffer(0)]],
+                             constant float& time[[buffer(1)]],
+                             texture2d<float, access::sample> texture [[texture(1)]]) {
+
+    constexpr sampler s(address::clamp_to_edge, filter::linear);
+
+    float2 pixel = (pixPos.xy - res.xy * 0.5) / res.xy;
+
+    float3 col;
+    for (int i = 1; i < 50; i++) {
+        float depth = 40.0 + float(i);
+        float2 uv = pixel * depth / 210.0;
+        col = texture.sample(s, fract(uv + 0.5)).rgb;
+        if ((1.0 - (col.y * col.y)) < float(i + 1) / 50.0) {
+            break;
+        }
+    }
+
+    col = min(col * col * 1.5, 1.0);
+    return float4(col, 1.0);
+}
