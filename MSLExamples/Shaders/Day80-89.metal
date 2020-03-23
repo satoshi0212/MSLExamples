@@ -692,3 +692,97 @@ fragment float4 shader_day82(float4 pixPos [[position]],
     col = min(col * col * 1.5, 1.0);
     return float4(col, 1.0);
 }
+
+// MARK: - Day83
+
+// https://www.shadertoy.com/view/Md3GWf Noise strip
+
+float2 stepnoise(float2 p, float size) {
+    p += 10.0;
+    float x = floor(p.x/size)*size;
+    float y = floor(p.y/size)*size;
+
+    x = fract(x * 0.1) + 1.0 + x * 0.0002;
+    y = fract(y * 0.1) + 1.0 + y * 0.0003;
+
+    float a = fract(1.0 / (0.000001 * x * y + 0.00001));
+    a = fract(1.0 / (0.000001234 * a + 0.00001));
+
+    float b = fract(1.0 / (0.000002 * (x * y + x) + 0.00001));
+    b = fract(1.0 / (0.0000235 * b + 0.00001));
+
+    return float2(a, b);
+}
+
+float tent(float f) {
+    return 1.0 - abs(fract(f) - 0.5) * 2.0;
+}
+
+#define SEED1 (1.705)
+#define SEED2 (1.379)
+#define DMUL 8.12235325
+
+float poly(float a, float b, float c, float ta, float tb, float tc) {
+    return (a*ta + b*tb + c*tc) / (ta+tb+tc);
+}
+
+float mask(float2 p) {
+    float2 r = stepnoise(p, 5.5) - 0.5;
+    p[0] += r[0] * DMUL;
+    p[1] += r[1] * DMUL;
+    float f = fract(p[0] * SEED1 + p[1] / (SEED1 + 0.15555)) * 1.03;
+    return poly(pow(f, 150.0), f * f, f, 1.0, 0.0, 1.3);
+}
+
+float s(float x, float y, float2 uv, sampler sa, texture2d<float, access::sample> texture, float2 res) {
+    float4 clr = texture.sample(sa, float2(x, y) / res.xy + uv);
+    float f = clr[0] * 0.3 + clr[1] * 0.6 + clr[1] * 0.1;
+    return f;
+}
+
+float3x3 mynormalize(float3x3 mat) {
+    float sum = mat[0][0] + mat[0][1] + mat[0][2]
+    + mat[1][0] + mat[1][1] + mat[1][2]
+    + mat[2][0] + mat[2][1] + mat[2][2];
+    mat[0] /= sum;
+    mat[1] /= sum;
+    mat[2] /= sum;
+    return mat;
+}
+
+fragment float4 shader_day83(float4 pixPos [[position]],
+                             constant float2& res [[buffer(0)]],
+                             constant float& time[[buffer(1)]],
+                             texture2d<float, access::sample> texture [[texture(1)]]) {
+
+    constexpr sampler sa(address::clamp_to_edge, filter::linear);
+
+    float2 uv = pixPos.xy;
+
+    float4 clr = texture.sample(sa, pixPos.xy / res.xy);
+    float f = clr[0] * 0.3 + clr[1] * 0.6 + clr[1] * 0.1;
+    float2 uv3 = pixPos.xy / res.xy;
+    float d = 0.5;
+    float3x3 mat = float3x3(
+                            float3(d, d,   d),
+                            float3(d, 2.0, d),
+                            float3(d, d,   d)
+                            );
+
+    float f1 = s(0.0, 0.0, uv3, sa, texture, res);
+
+    mat = mynormalize(mat) * 1.0;
+    f = s(-1.0, -1.0, uv3, sa, texture, res) * mat[0][0] + s(-1.0, 0.0, uv3, sa, texture, res) * mat[0][1] + s(-1.0, 1.0, uv3, sa, texture, res) * mat[0][2]
+    + s(0.0, -1.0, uv3, sa, texture, res) * mat[1][0] + s(0.0, 0.0, uv3, sa, texture, res) * mat[1][1] + s(0.0, 1.0, uv3, sa, texture, res) * mat[1][2]
+    + s(1.0, -1.0, uv3, sa, texture, res) * mat[2][0] + s(1.0, 0.0, uv3, sa, texture, res) * mat[2][1] + s(1.0, 1.0, uv3, sa, texture, res) * mat[2][2];
+
+    f = (f - s(0.0, 0.0, uv3, sa, texture, res));
+    f *= 40.0;
+    f = f1 - f;
+
+    float c = mask(uv);
+    c = float(f >= c);
+
+    return float4(c, c, c, 1.0);
+}
+
