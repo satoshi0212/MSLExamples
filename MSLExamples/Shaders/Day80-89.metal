@@ -786,3 +786,26 @@ fragment float4 shader_day83(float4 pixPos [[position]],
     return float4(c, c, c, 1.0);
 }
 
+// MARK: - day84
+
+// https://www.shadertoy.com/view/MdsXRB Light bulb
+
+fragment float4 shader_day84(float4 pixPos [[position]],
+                             constant float2& res [[buffer(0)]],
+                             constant float& time[[buffer(1)]],
+                             texture2d<float, access::sample> texture [[texture(1)]]) {
+
+    constexpr sampler s(address::clamp_to_edge, filter::linear);
+
+    float2 R = res.xy;
+    float2 u = pixPos.xy / R;
+    float4 o = texture.sample(s, u);
+    u *= R / R.y;
+    u.x -= 0.5 * floor(mod(32.0 * u.y + 0.5, 2.0)) / 32.0;
+    float2 u0 = floor(u * 32.0 + 0.5) / 32.0;
+    float d = length(u - u0) * 32.0;
+    o = smoothstep(o, float4(0), float4(d));
+    return o;
+}
+
+
