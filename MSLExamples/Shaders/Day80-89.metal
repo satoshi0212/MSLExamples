@@ -808,4 +808,31 @@ fragment float4 shader_day84(float4 pixPos [[position]],
     return o;
 }
 
+// MARK: - Day85
+
+// https://www.shadertoy.com/view/ldBfzw Fireworks
+
+#define N(h) fract(sin(float4(6.0, 9.0, 1.0, 0.0) * h) * 900.0)
+
+fragment float4 shader_day85(float4 pixPos [[position]],
+                             constant float2& res [[buffer(0)]],
+                             constant float& time[[buffer(1)]]) {
+
+    float4 ret = float4(0.0);
+    float2 u = pixPos.xy / res.y;
+    float e = 0.0;
+    float d = 0.0;
+    float4 p = 0.0;
+
+    for (float i = 0.0; i < 5.0; i++) {
+        d = floor(e = i * 9.1 + time);
+        p = N(d) + 0.3;
+        e -= d;
+        for (d = 0.0; d < 30.0; d++) {
+            ret += p * (1.0 - e) / 1000.0 / length(u - (p - e * (N(d + i) - 0.5)).xy);
+        }
+    }
+
+    return ret;
+}
 
