@@ -836,3 +836,65 @@ fragment float4 shader_day85(float4 pixPos [[position]],
     return ret;
 }
 
+// MARK: - Day86
+
+// https://www.shadertoy.com/view/Xd2XDm Eye
+
+float tri(float x, float s) {
+    return (abs(fract(x / s) - 0.5) - 0.25) * s;
+}
+
+float hash86(float x) {
+    return fract(sin(x * 171.2972) * 18267.978 + 31.287);
+}
+
+float3 pix(float2 p, float t, float s) {
+    s += floor(t * 0.25);
+    float scl = (hash86(s + 30.0) * 4.0);
+    scl += sin(t * 2.0) * 0.25 + sin(t) * 0.5;
+    t *= 3.0;
+    float2 pol = float2(atan2(p.y, p.x), length(p));
+    float v;
+    float id = floor(pol.y * 2.0 * scl);
+    pol.x += t * (hash86(id + s) * 2.0 - 1.0) * 0.4;
+    float si = hash86(id + s * 2.0);
+    float rp = floor(hash86(id + s * 4.0) * 5.0 + 4.0);
+    v = (abs(tri(pol.x, M_PI_2_F / rp)) - si * 0.1) * pol.y;
+    v = max(v, abs(tri(pol.y, 1.0 / scl)) - (1.0 - si) * 0.11);
+    v = smoothstep(0.01, 0.0, v);
+    return float3(v);
+}
+
+float3 pix2(float2 p, float t, float s) {
+    return clamp(pix(p, t, s) - pix(p, t, s + 8.0) + pix(p * 0.1, t, s + 80.0) * 0.2, float3(0.0), float3(1.0));
+}
+
+float2 hash2(float2 p) {
+    return fract(1965.5786 * float2(sin(p.x * 591.32 + p.y * 154.077), cos(p.x * 391.32 + p.y * 49.077)));
+}
+
+float3 blur(float2 p, float globaltime) {
+    float3 ite = float3(0.0);
+    for (int i = 0; i < 6; i ++) {
+        float tc = 0.15;
+        ite += pix2(p, globaltime * 3.0 + (hash2(p + float(i)) - 0.5).x * tc, 5.0);
+    }
+    ite /= 6.0;
+    ite += exp(fract(globaltime * 0.25 * 6.0) * -40.0) * 2.0;
+    return ite;
+}
+
+fragment float4 shader_day86(float4 pixPos [[position]],
+                             constant float2& res [[buffer(0)]],
+                             constant float& time[[buffer(1)]]) {
+    float2 uv = pixPos.xy / res.xy;
+    uv = 2.0 * uv - 1.0;
+    uv.x *= res.x / res.y;
+    float globaltime = time - 2.555;
+    uv += (float2(hash86(globaltime), hash86(globaltime + 9.999)) - 0.5) * 0.03;
+    float3 c = float3(blur(uv + float2(0.005, 0.0), globaltime).x, blur(uv + float2(0.0, 0.005), globaltime).y, blur(uv, globaltime).z);
+    c = pow(c, float3(0.4, 0.6, 1.0) * 2.0) * 1.5;
+    c *= exp(length(uv) * -1.0) * 2.5;
+    c = pow(c, float3(1.0 / 2.2));
+    return float4(c, 1.0);
+}
