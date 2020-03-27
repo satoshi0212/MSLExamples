@@ -25,5 +25,6 @@ metal::float2x2 rot(float radian);
 
 float rand(float2 n);
 float3 mod(float3 x, float3 y);
+float deg2rad(float num);
 
 #endif /* Common_h */

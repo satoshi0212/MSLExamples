@@ -49,3 +49,7 @@ float rand(float2 n) {
 float3 mod(float3 x, float3 y) {
     return x - y * floor(x / y);
 }
+
+float deg2rad(float num) {
+    return num * M_PI_F / 180.0;
+}

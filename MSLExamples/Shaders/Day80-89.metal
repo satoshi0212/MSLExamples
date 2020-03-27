@@ -21,10 +21,6 @@ float2 mod2(float2 x, float2 y) {
     return x - y * floor(x / y);
 }
 
-float deg2rad(float num) {
-    return num * M_PI_F / 180.0;
-}
-
 float ndot(float2 a, float2 b ) { return a.x * b.x - a.y * b.y; }
 
 float dBox2d(float2 p, float2 b) {
@@ -897,4 +893,122 @@ fragment float4 shader_day86(float4 pixPos [[position]],
     c *= exp(length(uv) * -1.0) * 2.5;
     c = pow(c, float3(1.0 / 2.2));
     return float4(c, 1.0);
+}
+
+// MARK: - Day87
+
+// http://glslsandbox.com/e#61569.0 breaking ground
+
+#define NEARPLANE 0.0001
+#define UP float3(0.0, 1.0, 0.0)
+
+float2 hash87(float2 p) {
+    return fract(sin(float2(dot(p, float2(127.1, 311.7)), dot(p, float2(269.5, 183.3)))) * 43758.5453);
+}
+
+float4 voronoi(float2 x) {
+    float2 n = floor(x);
+    float2 f = fract(x);
+    float2 o;
+
+    //----------------------------------
+    // first pass: regular voronoi
+    //----------------------------------
+    float2 mg, mr;
+    float oldDist;
+    float md = 8.0;
+    for (int j = -1; j <= 1; j++)
+        for (int i =- 1; i <= 1; i++) {
+            float2 g = float2(float(i),float(j));
+            o = hash87( n + g );
+            float2 r = g + o - f;
+            float d = dot(r,r);
+            if (d < md) {
+                md = d;
+                mr = r;
+                mg = g;
+            }
+        }
+    oldDist = md;
+
+    //----------------------------------
+    // second pass: distance to borders
+    //----------------------------------
+    md = 8.0;
+    for (int j =- 2; j <= 2; j++)
+        for (int i =- 2; i <= 2; i++) {
+            float2 g = mg + float2(float(i),float(j));
+            o = hash87( n + g );
+            float2 r = g + o - f;
+            if (dot(mr - r, mr - r) > 0.00001)
+                md = min(md, dot(0.5 * (mr + r), normalize(r - mr)));
+        }
+
+    return float4(md, mr, oldDist);
+}
+
+float3x3 rotationMatrix(float3 axis, float angle) {
+    axis = normalize(axis);
+    float s = sin(angle);
+    float c = cos(angle);
+    float oc = 1.0 - c;
+    return float3x3(oc * axis.x * axis.x + c, oc * axis.x * axis.y - axis.z * s, oc * axis.z * axis.x + axis.y * s,
+                    oc * axis.x * axis.y + axis.z * s, oc * axis.y * axis.y + c, oc * axis.y * axis.z - axis.x * s,
+                    oc * axis.z * axis.x - axis.y * s, oc * axis.y * axis.z + axis.x * s, oc * axis.z * axis.z + c);
+}
+
+float3 getPlaneIntersectPhase(float3 ro, float3 rd, float planeY) {
+    float intersect = (planeY - (ro + rd).y) / normalize(rd).y;
+    if (intersect > 0.0) {
+        float twistSpeed = 2.0;
+        float twistScale = 1.25;
+
+        float3 p = ro + rd + normalize(rd) * intersect;
+        float4 c = voronoi(p.xz);
+
+        float camDist = max(-0.35 + max(p.z - ro.z, 0.0) * 0.6, 0.0);
+        float edgePhase = abs(p.x + (sin(twistSpeed * p.z * 0.35) + sin(twistSpeed * p.z * 0.5156) * 0.35 + sin(twistSpeed * p.z * 1.241) * 0.15) * twistScale);
+
+        edgePhase *= 0.05;
+        edgePhase -= -0.925 + pow(0.065 * camDist, 1.4);
+        edgePhase = mix(edgePhase, 1.0, (1.0 - clamp(0.25 * camDist, 0.0, 1.0)));
+        edgePhase = clamp(edgePhase, 0.0, 1.0);
+        edgePhase = 1.0 - pow(edgePhase, 2.0);
+        return float3(edgePhase, c.x, intersect);
+    }
+    return float3(0.0, 0.0, 0.0);
+}
+
+fragment float4 shader_day87(float4 pixPos [[position]],
+                             constant float2& res [[buffer(0)]],
+                             constant float& time[[buffer(1)]]) {
+
+    float2 uv = (pixPos.xy - res.xy * 0.5) / min(res.x, res.y);
+    uv.y *= -1.0;
+
+    float camDist = 1.0 / tan(deg2rad(120.0 * 0.5));
+
+    float3 camForward = float3(0.0, 0.0, 1.0);
+    camForward = float3x3(rotationMatrix(UP, 0.0)) * camForward;
+    float3 camRight = cross(UP, camForward);
+    camRight = float3x3(rotationMatrix(camForward, deg2rad(8.0))) * camRight;
+    camForward = float3x3(rotationMatrix(camRight, + deg2rad(-40.0))) * camForward;
+    float3 camUp = cross(camForward, camRight);
+    float3 floattorToPixel = float3(uv, camDist) * NEARPLANE;
+    floattorToPixel = (uv.x * camRight + uv.y * camUp + camDist * camForward) * NEARPLANE;
+    float3 camPosition = float3(2.0, 3.0, 0.0) + float3(0.0, 0.0, -3.5 * time);
+
+    float4 pixel = float4(0.0, 0.0, 0.0, 1.0);
+
+    float3 phase = getPlaneIntersectPhase(camPosition, floattorToPixel, -1.0);
+    pixel.rgb = float3(phase.y);
+    pixel.rgb = mix( float3(1.0,0.1,0.0), float3(0.6,0.05,0.0), smoothstep( phase.x-0.025, phase.x, phase.y ) );
+
+    phase = getPlaneIntersectPhase(camPosition, floattorToPixel, -0.9);
+    pixel.rgb = mix( pixel.rgb, float3(1.0), smoothstep(phase.x - 0.025, phase.x, phase.y) );
+
+    pixel.w = phase.z;
+
+    float fogStrength = clamp(pow(max(pixel.w - 8.0, 0.0) / 52.0, 0.85), 0.0, 1.0);
+    return float4(pixel.rgb * (1.0 - fogStrength) + float3(1.0, 1.0, 1.0) * fogStrength, 1.0);
 }
