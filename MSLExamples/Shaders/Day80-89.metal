@@ -1012,3 +1012,82 @@ fragment float4 shader_day87(float4 pixPos [[position]],
     float fogStrength = clamp(pow(max(pixel.w - 8.0, 0.0) / 52.0, 0.85), 0.0, 1.0);
     return float4(pixel.rgb * (1.0 - fogStrength) + float3(1.0, 1.0, 1.0) * fogStrength, 1.0);
 }
+
+// MARK: - Day88
+
+// https://www.shadertoy.com/view/XlfGRj Star nest
+
+#define iterations 17
+#define formuparam 0.53
+
+#define volsteps 16
+#define stepsize 0.1
+
+#define brightness 0.0015
+#define darkmatter 0.300
+#define distfading 0.730
+#define saturation 0.850
+
+#define zoom   0.800
+#define tile   0.850
+#define speed  0.010
+
+fragment float4 shader_day88(float4 pixPos [[position]],
+                             constant float2& res [[buffer(0)]],
+                             constant float& time[[buffer(1)]],
+                             texture2d<float, access::sample> texture [[texture(1)]]) {
+
+    float2 uv = pixPos.xy / res.xy - 0.5;
+    uv.y *= res.y / res.x;
+    float3 dir = float3(uv * 0.800, 1.0);
+    float timeX = time * 0.001 + 0.25;
+
+    float a1 = 0.5 + 0.5 / res.x * 2.0;
+    float a2 = 0.8 + 0.5 / res.y * 2.0;
+    float2x2 rot1 = float2x2(cos(a1), sin(a1), -sin(a1), cos(a1));
+    float2x2 rot2 = float2x2(cos(a2), sin(a2), -sin(a2), cos(a2));
+
+    float2 dirxz = dir.xz;
+    float2 dirxy = dir.xy;
+    dirxz *= rot1;
+    dir.x = dirxz.r;
+    dir.z = dirxz.g;
+    dirxy *= rot2;
+    dir.x = dirxy.r;
+    dir.y = dirxy.g;
+
+    float3 from = float3(1.0, 0.5, 0.5);
+    from += float3(timeX * 2.0, timeX, -2.0);
+    float2 fromxz = from.xz;
+    float2 fromxy = from.xy;
+    fromxz *= rot1;
+    from.x = fromxz.r;
+    from.z = fromxz.g;
+    fromxy *= rot2;
+    from.x = fromxy.r;
+    from.y = fromxy.g;
+
+    float s = 0.1;
+    float fade = 1.0;
+    float3 v = float3(0.0);
+    for (int r = 0; r < volsteps; r++) {
+        float3 p = from + s * dir * 0.5;
+        p = abs(float3(0.850) - mod(p, float3(0.850 * 2.0)));
+        float pa;
+        float a = pa = 0.0;
+        for (int i = 0; i < iterations; i++) {
+            p = abs(p) / dot(p,p) - formuparam;
+            a += abs(length(p) - pa);
+            pa = length(p);
+        }
+        float dm = max(0.0, darkmatter - a * a * 0.001);
+        a *= a * a;
+        if (r > 6) fade *= 1.0 - dm;
+        v += fade;
+        v += float3(s, s * s, s * s * s * s) * a * brightness * fade;
+        fade *= distfading;
+        s += stepsize;
+    }
+    v = mix(float3(length(v)), v, saturation);
+    return float4(v * 0.01, 1.0);
+}
