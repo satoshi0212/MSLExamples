@@ -1091,3 +1091,41 @@ fragment float4 shader_day88(float4 pixPos [[position]],
     v = mix(float3(length(v)), v, saturation);
     return float4(v * 0.01, 1.0);
 }
+
+// MARK: - Day89
+
+#define nsin(x) (sin(x) * 0.5 + 0.5)
+
+float create_ripple(float2 coord, float2 ripple_coord, float scale, float radius, float range, float height) {
+    float dist = distance(coord, ripple_coord);
+    return sin(dist / scale) * height * smoothstep(dist - range, dist + range, radius);
+}
+
+float2 get_center(float2 pixPos, float t, float2 res) {
+    t = round(t + 0.5);
+    return float2(
+                nsin(t - cos(t + 2354.2345) + 2345.3),
+                nsin(t + cos(t - 2452.2356) + 1234.0)
+                ) * res.xy;
+}
+
+fragment float4 shader_day89(float4 pixPos [[position]],
+                             constant float2& res [[buffer(0)]],
+                             constant float& time[[buffer(1)]],
+                             texture2d<float, access::sample> texture [[texture(1)]]) {
+
+    constexpr sampler s(address::clamp_to_edge, filter::linear);
+
+    float2 ps = float2(1.0) / res.xy;
+    float2 uv = pixPos.xy * ps;
+
+    float timescale = 1.0;
+    float t = fract(time * timescale);
+
+    float2 center = get_center(pixPos.xy, time * timescale, res);
+
+    float height = create_ripple(pixPos.xy, center, t * 100.0 + 1.0, 100.0, 200.0, 1000.0);
+    float2 normals = float2(dfdx(height), dfdy(height));
+
+    return texture.sample(s, uv + normals * ps);
+}
