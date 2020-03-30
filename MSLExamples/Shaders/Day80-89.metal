@@ -1094,6 +1094,8 @@ fragment float4 shader_day88(float4 pixPos [[position]],
 
 // MARK: - Day89
 
+// https://www.shadertoy.com/view/4lBBRm Ripple
+
 #define nsin(x) (sin(x) * 0.5 + 0.5)
 
 float create_ripple(float2 coord, float2 ripple_coord, float scale, float radius, float range, float height) {
