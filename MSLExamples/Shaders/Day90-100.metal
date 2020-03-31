@@ -62,97 +62,97 @@ float tower(float3 p) {
     p.y += 15.0;
     float3 p2 = p;
     if (abs(p2.x) < abs(p2.z)) p2.xz = p2.zx;
-    float t = min(house(p+float3(0,3,0),0.5), house(p2, 1.0));
-    t = min(t, house(p-float3(0,5,0),1.5));
-    p2.x -= sign(p2.x)*5.0;
+    float t = min(house(p + float3(0, 3, 0), 0.5), house(p2, 1.0));
+    t = min(t, house(p - float3(0, 5, 0), 1.5));
+    p2.x -= sign(p2.x) * 5.0;
     p2.x = abs(p2.x);
     p2.z = abs(p2.z);
-    t = min(t, house(p2.zyx-float3(2,8,2),0.3));
-    t = min(t, house(p2-float3(0,12,0),1.5));
+    t = min(t, house(p2.zyx - float3(2, 8, 2), 0.3));
+    t = min(t, house(p2 - float3(0, 12, 0), 1.5));
     return t;
 }
 
 float wall(float3 p) {
-    p.x -= cos(p.z*0.1)*2.0;
-    p.x -= sin(p.z*0.03)*3.0;
-    float3 rp=p;
+    p.x -= cos(p.z * 0.1) * 2.0;
+    p.x -= sin(p.z * 0.03) * 3.0;
+    float3 rp = p;
     rp.z = rep(rp.z, 5.0);
-    float w = box90(rp+float3(0,1,0), float3(2,1,50));
-    rp.x = abs(rp.x)-2.0;
-    float m = box90(rp-float3(0,2,0), float3(0.25,5,1.6));
+    float w = box90(rp + float3(0, 1, 0), float3(2, 1, 50));
+    rp.x = abs(rp.x) - 2.0;
+    float m = box90(rp - float3(0, 2, 0), float3(0.25, 5, 1.6));
     return min(w, m);
 }
 
 float field(float3 p) {
     float3 p2 = p;
-    if(abs(p2.x)<abs(p2.z)) p2.xz=p2.zx;
+    if (abs(p2.x) < abs(p2.z)) p2.xz = p2.zx;
 
-    float tmp = box90(p2, float3(5,5,5));
-    float f = max(abs(tmp-4.0), -p.y-2.0);
-    f=min(f, box90(p, float3(7,0.5,7)));
+    float tmp = box90(p2, float3(5, 5, 5));
+    float f = max(abs(tmp - 4.0), -p.y - 2.0);
+    f = min(f, box90(p, float3(7, 0.5, 7)));
 
     float3 p3 = p;
-    p3.xz=rep(p3.xz, float2(2.5));
+    p3.xz = rep(p3.xz, float2(2.5));
 
-    float a = box90(p3, float3(0.2,2,0.2));
-    a = min(a, cone(p3+float3(0,4,0), 0.3,3.0));
-    f=min(f, max(a,tmp-3.8));
+    float a = box90(p3, float3(0.2, 2, 0.2));
+    a = min(a, cone(p3 + float3(0, 4, 0), 0.3, 3.0));
+    f = min(f, max(a, tmp - 3.8));
 
     return f;
 }
 
 float village(float3 p) {
-    float3 p2=p;
+    float3 p2 = p;
     p2.xz = abs(p2.xz);
     float w = wall(p);
     p2.xz -= 23.0;
-    float t=tower(p2);
+    float t = tower(p2);
     float3 p3 = p;
-    p3.z = p3.z-4.5*sign(p.x);
-    p3.x = abs(p3.x)-25.0;
-    float f=field(p3);
+    p3.z = p3.z - 4.5 * sign(p.x);
+    p3.x = abs(p3.x) - 25.0;
+    float f = field(p3);
 
     float res = t;
     res = min(res, w);
     res = min(res, f);
 
-    p.z = p.z+10.0*sign(p.x);
+    p.z = p.z + 10.0 * sign(p.x);
     p.x = -abs(p.x);
-    res = min(res, minitower(p+float3(29,1,0)));
+    res = min(res, minitower(p + float3(29, 1, 0)));
 
     return res;
 }
 
 float map(float3 p) {
-    float t1=sin(length(p.xz)*0.009);
-    float s=12.0;
-    for(int i=0; i<6; ++i) {
-        p.xz = abs(p.xz)-s;
+    float t1 = sin(length(p.xz) * 0.009);
+    float s = 12.0;
+    for (int i = 0; i < 6; ++i) {
+        p.xz = abs(p.xz) - s;
         p.xz = p.xz * rot90(0.55 + t1 + float(i) * 0.34);
         s /= 0.85;
     }
-    p.x+=3.0;
+    p.x += 3.0;
 
     return min(village(p), -p.y);
 }
 
 float getao(float3 p, float3 n, float dist) {
-    return clamp(map(p+n*dist)/dist, 0.0, 1.0);
+    return clamp(map(p + n * dist) / dist, 0.0, 1.0);
 }
 
 float noise90(float2 p) {
-    float2 ip=floor(p);
-    p=smoothstep(0.0,1.0,fract(p));
-    float2 st=float2(67,137);
-    float2 v=dot(ip,st)+float2(0,st.y);
-    float2 val=mix(fract(sin(v)*9875.565), fract(sin(v+st.x)*9875.565), p.x);
-    return mix(val.x,val.y,p.y);
+    float2 ip = floor(p);
+    p = smoothstep(0.0, 1.0, fract(p));
+    float2 st = float2(67, 137);
+    float2 v = dot(ip, st) + float2(0, st.y);
+    float2 val = mix(fract(sin(v) * 9875.565), fract(sin(v + st.x) * 9875.565), p.x);
+    return mix(val.x, val.y, p.y);
 }
 
 float fractal(float2 p) {
-    float d=0.5;
-    float v=0.0;
-    for(int i=0; i<5; ++i) {
+    float d = 0.5;
+    float v = 0.0;
+    for (int i = 0; i < 5; ++i) {
         v += noise90(p / d) * d;
         d *= 0.5;
     }
@@ -160,17 +160,17 @@ float fractal(float2 p) {
 }
 
 float3 sky(float3 r, float3 l, float time) {
-    float v=pow(max(dot(r,l),0.0),3.0);
+    float v = pow(max(dot(r, l), 0.0), 3.0);
 
     float2 sphereuv = float2(abs(atan2(r.z, r.x)) + time * 0.03, atan2(r.y, length(r.xz)));
 
     float skyn = fractal(sphereuv * float2(5, 10));
-    float skyn2 = fractal(sphereuv * float2(5, 10) * 0.3 - float2(time * 0.06,0));
-    skyn2=smoothstep(0.3,0.7,skyn2);
+    float skyn2 = fractal(sphereuv * float2(5, 10) * 0.3 - float2(time * 0.06, 0));
+    skyn2=smoothstep(0.3, 0.7, skyn2);
 
-    float3 blue = mix(float3(0.5,0.5,0.8), float3(0.0), skyn2*skyn);
+    float3 blue = mix(float3(0.5, 0.5, 0.8), float3(0.0), skyn2 * skyn);
 
-    return mix(blue*0.2, float3(1,0.7,0.4)*(skyn2*0.8+0.2), v);
+    return mix(blue * 0.2, float3(1, 0.7, 0.4) * (skyn2 * 0.8 + 0.2), v);
 }
 
 float3 sky2(float3 r, float3 l) {
@@ -178,13 +178,12 @@ float3 sky2(float3 r, float3 l) {
 
     float3 blue = float3(0.5, 0.5, 0.8);
 
-    return mix(blue*0.2, float3(1,0.7,0.4), v);
+    return mix(blue * 0.2, float3(1, 0.7, 0.4), v);
 }
 
 fragment float4 shader_day90(float4 pixPos [[position]],
                              constant float2& res [[buffer(0)]],
-                             constant float& time[[buffer(1)]],
-                             texture2d<float, access::sample> texture [[texture(1)]]) {
+                             constant float& time[[buffer(1)]]) {
 
     float2 uv = float2(pixPos.x / res.x, pixPos.y / res.y);
     uv -= 0.5;
@@ -234,8 +233,8 @@ fragment float4 shader_day90(float4 pixPos [[position]],
     }
 
     col += max(0.0, dot(n, l)) * fog * float3(1, 0.7, 0.4) * 1.5 * mix(0.0, ao * 0.5 + 0.5, shad);
-    col += (-n.y*0.5+0.5) * ao * fog * float3(0.5,0.5,0.8) * 0.5;
-    col += sky2(reflect(r,n), l)*f*10.0*fog * (0.5+0.5*shad);
+    col += (-n.y * 0.5 + 0.5) * ao * fog * float3(0.5, 0.5, 0.8) * 0.5;
+    col += sky2(reflect(r, n), l) * f * 10.0 * fog * (0.5 + 0.5 * shad);
 
     col += sky(r, l, time) * pow(dd * 0.01, 1.4);
 
@@ -243,5 +242,83 @@ fragment float4 shader_day90(float4 pixPos [[position]],
     col = pow(col, float3(2.3));
     col = pow(col, float3(0.4545));
 
+    return float4(col, 1.0);
+}
+
+// MARK: - Day91
+
+// https://www.shadertoy.com/view/tslyRf Supernova
+
+float2x2 Rotate2D(float angle) {
+    return float2x2(cos(angle), sin(angle), -sin(angle), cos(angle));
+}
+
+float TextureCoordinate(float2 position, sampler s, texture2d<float, access::sample> texture) {
+    float zoomingFactor = 60.0;
+    return texture.sample(s, position / zoomingFactor, 0.0).x;
+}
+
+float FBM(float2 uv, sampler s, texture2d<float, access::sample> texture) {
+    float innerPower = 2.0;
+    float noiseValue = 0.0;
+    float brightness = 2.0;
+    float dampeningFactor = 2.0;
+    float offset = 0.5;
+    float difference = 2.0;
+    for (int i = 0; i < 5; ++i) {
+        noiseValue += abs((TextureCoordinate(uv, s, texture) - offset) * difference) / brightness;
+        brightness *= dampeningFactor;
+        uv *= innerPower;
+    }
+    return noiseValue;
+}
+
+float Turbulence(float2 uv, float globalTime, sampler s, texture2d<float, access::sample> texture) {
+    float activityLevel = 3.0;
+    float2 noiseBasisDiag = float2(FBM(uv - globalTime * activityLevel, s, texture), FBM(uv + globalTime * activityLevel, s, texture));
+    uv += noiseBasisDiag;
+    float rotationSpeed = 2.0;
+    return FBM(uv * Rotate2D(globalTime * rotationSpeed), s, texture);
+}
+
+float Ring(float2 uv) {
+    float circleRadius = sqrt(length(uv));
+    float range = 2.3;
+    float functionSlope = 15.0;
+    float offset = 0.5;
+    return abs(mod(circleRadius, range) - range / 2.0) * functionSlope + offset;
+}
+
+fragment float4 shader_day91(float4 pixPos [[position]],
+                             constant float2& res [[buffer(0)]],
+                             constant float& time[[buffer(1)]],
+                             texture2d<float, access::sample> texture [[texture(2)]]) {
+
+    constexpr sampler s(address::repeat, filter::linear);
+
+    float2 uv = float2(pixPos.x / res.x, pixPos.y / res.y) - 0.5;
+    uv /= float2(res.y / res.x, 1.0);
+
+    float globalTime = time * 0.1;
+
+    float distanceFromCenter = length(uv);
+    float radius = 0.4;
+    float alpha = 1.0;
+    float alphaFalloffSpeed = 0.08;
+
+    if (distanceFromCenter > radius) {
+        alpha = max(0.0, 1.0 - (distanceFromCenter - radius) / alphaFalloffSpeed);
+    }
+
+    if (alpha == 0.0) {
+        discard_fragment();
+    }
+
+    float2 uvZoomed = uv * 4.0;
+
+    float fractalColor = Turbulence(uvZoomed, globalTime, s, texture);
+    fractalColor *= Ring(uvZoomed);
+    float3 col = normalize(float3(0.721, 0.311, 0.165)) / fractalColor;
+    col *= alpha;
     return float4(col, 1.0);
 }
