@@ -430,3 +430,91 @@ fragment float4 shader_day92(float4 pixPos [[position]],
 
     return float4(vResult, 1.0);
 }
+
+// MARK: - Day93
+
+// https://www.shadertoy.com/view/wslcWf Probabilistic quadtree filter
+
+// the number of divisions at the start
+#define MIN_DIVISIONS 4.0
+
+// the numer of possible quad divisions
+#define MAX_ITERATIONS 5
+
+// the number of samples picked fter each quad division
+#define SAMPLES_PER_ITERATION 30
+#define F_SAMPLES_PER_ITERATION 30.
+
+// useless, kept it for reference for a personal usage
+#define MAX_SAMPLES 200
+
+// threshold min, max given the mouse.x
+#define THRESHOLD_MIN 0.01
+#define THRESHOLD_MAX 0.05
+
+float2 hash22(float2 p) {
+    float n = sin(dot(p, float2(41, 289)));
+    return fract(float2(262144, 32768) * n);
+}
+
+float gscale(float4 color) {
+    return (color.r + color.g + color.b + color.a) / 4.0;
+}
+
+float quadColorVariation (float2 center, float size, sampler sa, texture2d<float, access::sample> texture) {
+    float samplesBuffer[SAMPLES_PER_ITERATION];
+
+    float avg = 0.0;
+
+    for (int i = 0; i < SAMPLES_PER_ITERATION; i++) {
+        float fi = float(i);
+        float2 r = hash22(center.xy + float2(fi, 0.0)) - 0.5;
+        float sp = gscale(texture.sample(sa, center + r * size));
+        avg+= sp;
+        samplesBuffer[i] = sp;
+    }
+
+    avg /= F_SAMPLES_PER_ITERATION;
+
+    float var = 0.0;
+    for (int i = 0; i < SAMPLES_PER_ITERATION; i++) {
+        var+= abs(samplesBuffer[i] - avg);
+    }
+    return var / F_SAMPLES_PER_ITERATION;
+}
+
+fragment float4 shader_day93(float4 pixPos [[position]],
+                             constant float2& res [[buffer(0)]],
+                             constant float& time[[buffer(1)]],
+                             texture2d<float, access::sample> texture [[texture(1)]]) {
+
+    constexpr sampler sa(address::clamp_to_edge, filter::linear);
+
+    float2 uv = pixPos.xy / res;
+
+    float threshold = mix(THRESHOLD_MIN, THRESHOLD_MAX, 1.0 / res.x);
+
+    float divs = MIN_DIVISIONS;
+
+    float2 quadCenter = (floor(uv * divs) + 0.5) / divs;
+    float quadSize = 1.0 / divs;
+
+    for (int i = 0; i < MAX_ITERATIONS; i++) {
+        float var = quadColorVariation(quadCenter, quadSize, sa, texture);
+        if (var < threshold) break;
+        divs *= 2.0;
+        quadCenter = (floor(uv * divs) + 0.5) / divs;
+        quadSize /= 2.0;
+    }
+
+    float4 color = texture.sample(sa, uv);
+
+    float2 nUv = fract(uv * divs);
+
+    float2 lWidth = float2(1.0 / res.x, 1.0 / res.y);
+    float2 uvAbs = abs(nUv - 0.5);
+    float s = step(0.5 - uvAbs.x, lWidth.x * divs) + step(0.5 - uvAbs.y, lWidth.y * divs);
+    color-= s;
+
+    return color;
+}
