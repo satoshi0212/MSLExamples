@@ -518,3 +518,142 @@ fragment float4 shader_day93(float4 pixPos [[position]],
 
     return color;
 }
+
+// MARK: - Day94
+
+// https://www.shadertoy.com/view/3sXyRN Corridor
+
+float2x2 rot94(float a) {
+    float ca = cos(a);
+    float sa = sin(a);
+    return float2x2(ca, sa, -sa, ca);
+}
+
+float3 cam(float3 p, float t) {
+    t *= 0.3;
+    p.xz = p.xz * rot94(sin(t) * 0.3);
+    p.xy = p.xy * rot94(sin(t * 0.7) * 0.4);
+    return p;
+}
+
+float hash94(float t) {
+    return fract(sin(t * 788.874));
+}
+
+float curve(float t, float d) {
+    t /= d;
+    return mix(hash94(floor(t)), hash94(floor(t) + 1.0), pow(smoothstep(0.0, 1.0, fract(t)), 10.0));
+}
+
+float tick(float t, float d) {
+    t /= d;
+    float m = fract(t);
+    m = smoothstep(0.0, 1.0, m);
+    m = smoothstep(0.0, 1.0, m);
+    return (floor(t) + m) * d;
+}
+
+float hash2_94(float2 uv) {
+    return fract(dot(sin(uv * 425.215 + uv.yx * 714.388), float2(522.877)));
+}
+
+float2 hash22_94(float2 uv) {
+    return fract(sin(uv * 425.215 + uv.yx * 714.388) * float2(522.877));
+}
+
+float3 hash3_94(float2 id) {
+    return fract(sin(id.xyy * float3(427.544, 224.877, 974.542) + id.yxx * float3(947.544, 547.847, 652.454)) * 342.774);
+}
+
+float camtime(float t) {
+    return t * 1.9 + tick(t, 1.9) * 1.0;
+}
+
+fragment float4 shader_day94(float4 pixPos [[position]],
+                             constant float2& res [[buffer(0)]],
+                             constant float& time[[buffer(1)]]) {
+
+    float timeX = mod(time, 300.0);
+
+    float2 uv = float2(pixPos.x / res.x, pixPos.y / res.y);
+    uv -= 0.5;
+    uv /= float2(res.y / res.x, 1.0);
+
+    float3 col = float3(0.0);
+
+    float3 size = float3(0.9, 0.9, 1000.0);
+
+    float dof = 0.02;
+    float dofdist = 1.0 / 5.0;
+
+    for (float j = 0.0; j < 10.0; ++j) {
+
+        // DOF offset
+        float2 off = hash22_94(uv + j * 74.542 + 35.877) * 2.0 - 1.0;
+
+        // Motion blur offset
+        float t2 = camtime(timeX + j * 0.05 / 10.0);
+
+        float3 s = float3(0.0, 0.0, -1.0);
+        s.xy += off * dof;
+        float3 r = normalize(float3(-uv - off * dof * dofdist, 2.0));
+
+        cam(s, t2);
+        cam(r, t2);
+
+        float3 alpha = float3(1.0);
+
+        // Bounces
+        for (float i = 0.0; i < 3.0; ++i) {
+            // box collision
+            float3 boxmin = (size - s) / r;
+            float3 boxmax = (-size - s) / r;
+
+            float3 box = max(boxmin, boxmax);
+
+            // only check box x and y axis
+            float d = min(box.x, box.y);
+            float3 p = s + r * d;
+            float2 cuv = p.xz;
+            float3 n = float3(0.0, sign(box.y), 0.0);
+
+            if (box.x < box.y) {
+                cuv = p.yz;
+                cuv.x += 1.0;
+                n = float3(sign(box.x), 0.0, 0.0);
+            }
+
+            float3 p2 = p;
+            p2.z += t2 * 3.0;
+            cuv.y += t2 * 3.0;
+            cuv *= 3.0;
+            float2 id = floor(cuv);
+
+            float rough = min(1.0, 0.85 + 0.2 * hash2_94(id + 100.5));
+
+            float3 addcol = float3(0);
+            addcol += float3(1.0+max(0.0,cos(cuv.y*0.025)*0.9),0.5,0.2+max(0.0,sin(cuv.y*0.05)*0.5))*2.0;
+            addcol *= smoothstep(0.5*curve(time+id.y*0.01+id.x*0.03, 0.3),0.0,hash2_94(id));
+            addcol *= step(0.5,sin(p2.x)*sin(p2.z*0.4));
+            addcol += float3(0.7,0.5,1.2)*step(p2.y,-0.9)*max(0.0,curve(time,0.2)*2.0-1.0)*step(hash2_94(id+.7),0.2);
+            col += addcol * alpha;
+
+            float fre = pow(1.0 - max(0.0, dot(n, r)), 3.0);
+            alpha *= fre * 0.9;
+
+            float3 pure = reflect(r,n);
+
+            r = normalize(hash3_94(uv + j * 74.524 + i * 35.712) - 0.5);
+            float dr = dot(r,n);
+            if (dr < 0.0) r = -r;
+            r = normalize(mix(r, pure,rough));
+
+            s = p;
+        }
+    }
+    col /= 10.0;
+    col *= 2.0;
+    col = smoothstep(0.0, 1.0, col);
+    col = pow(col, float3(0.4545));
+    return float4(col, 1.0);
+}
