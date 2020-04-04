@@ -657,3 +657,117 @@ fragment float4 shader_day94(float4 pixPos [[position]],
     col = pow(col, float3(0.4545));
     return float4(col, 1.0);
 }
+
+// MARK: - Day95
+
+// https://www.shadertoy.com/view/4dBGDy Green disks
+
+float3 rotateX(float a, float3 v) {
+    return float3(v.x, cos(a) * v.y + sin(a) * v.z, cos(a) * v.z - sin(a) * v.y);
+}
+
+float3 rotateY(float a, float3 v) {
+    return float3(cos(a) * v.x + sin(a) * v.z, v.y, cos(a) * v.z - sin(a) * v.x);
+}
+
+float orbIntensity(float3 p) {
+    if (length(p) < 4.0)
+        return 1.0;
+    return smoothstep(0.25, 1.0, cos(p.x * 10.0) * sin(p.y * 5.0) * cos(p.z * 7.0)) * 0.2 * step(length(p), 17.0);
+}
+
+float3 project(float3 p, float3 cam_origin, float3x3 cam_rotation) {
+    float3x3 cam_rotation_t = float3x3(float3(cam_rotation[0].x, cam_rotation[1].x, cam_rotation[2].x),
+                                       float3(cam_rotation[0].y, cam_rotation[1].y, cam_rotation[2].y),
+                                       float3(cam_rotation[0].z, cam_rotation[1].z, cam_rotation[2].z));
+    p = cam_rotation_t * (p - cam_origin);
+    return float3(p.xy / p.z, p.z);
+}
+
+float orb(float rad, float3 cd, float2 pixPos) {
+    return 1.0 - smoothstep(0.5, 0.55, distance(cd.xy, pixPos) / rad);
+}
+
+float orbShadow(float rad, float3 cd, float2 pixPos) {
+    return 1.0 - smoothstep(0.4, 1.1, distance(cd.xy, pixPos) / rad) * mix(1.0, 0.99, orb(rad, cd, pixPos));
+}
+
+float3 traverseUniformGrid(float3 ro, float3 rd, float2 pixPos, float time, float3 cam_origin, float3x3 cam_rotation) {
+    float3 increment = float3(1.0) / rd;
+    float3 intersection = ((floor(ro) + round(rd * 0.5 + float3(0.5))) - ro) * increment;
+
+    increment = abs(increment);
+    ro += rd * 1e-3;
+
+    float4 accum = float4(0.0, 0.0, 0.0, 1.0);
+
+    for (int i = 0; i < 24; i += 1) {
+        float3 rp = floor(ro + rd * min(intersection.x, min(intersection.y, intersection.z)));
+
+        float orb_intensity = orbIntensity(rp);
+
+        if (orb_intensity > 1e-3) {
+            float3 cd = project(rp + float3(0.5), cam_origin, cam_rotation);
+            if (cd.z > 1.0) {
+                float rad = 0.55 / cd.z;
+                rad *= 1.0 + 0.5 * sin(rp.x + time * 1.0) * cos(rp.y + time * 2.0) * cos(rp.z);
+                float dist = distance(rp + float3(0.5), ro);
+                float c = smoothstep(1.0, 2.5, dist);
+                float a = orb(rad, cd, pixPos) * c;
+                float b = orbShadow(rad, cd, pixPos) * c;
+                accum.rgb += accum.a * a * 1.5 *
+                mix(float3(1.0), float3(0.4, 1.0, 0.5) * 0.5, 0.5 + 0.5 * cos(rp.x)) * exp(-dist * dist * 0.008);
+                accum.a *= 1.0 - b;
+            }
+        }
+
+        intersection += increment * step(intersection.xyz, intersection.yxy) *
+        step(intersection.xyz, intersection.zzx);
+    }
+
+    accum.rgb += accum.a * float3(0.02);
+    return accum.rgb;
+}
+
+fragment float4 shader_day95(float4 pixPos [[position]],
+                             constant float2& res [[buffer(0)]],
+                             constant float& time[[buffer(1)]],
+                             texture2d<float, access::sample> texture [[texture(4)]]) {
+
+    constexpr sampler s(address::repeat, filter::linear);
+
+    float2 uv = pixPos.xy / res.xy;
+    float timeX = time;
+    float3 cam_origin;
+    float3x3 cam_rotation;
+
+    float2 frag_coord = uv * 2.0 - float2(1.0);
+    frag_coord.x *= res.x / res.y;
+
+    float time0 = time;
+    float time1 = time0 + 0.04;
+
+    float jitter = texture.sample(s, uv * res.xy / 256.0).r;
+
+    float4 fragColor = float4(0.0, 0.0, 0.0, 1.0);
+
+    for (int n = 0; n < 2; n += 1) {
+        timeX = mix(time0, time1, (float(n) + jitter) / 4.0) * 0.7;
+
+        cam_origin = rotateX(timeX * 0.3, rotateY(timeX * 0.5, float3(0.0, 0.0, -10.0)));
+
+        float3 cam_w = normalize(float3(cos(timeX) * 10.0, 0.0, 0.0) - cam_origin);
+        float3 cam_u = normalize(cross(cam_w, float3(0.0, 1.0, 0.0)));
+        float3 cam_v = normalize(cross(cam_u, cam_w));
+
+        cam_rotation = float3x3(cam_u, cam_v, cam_w);
+
+        float3 ro = cam_origin,rd = cam_rotation * float3(frag_coord, 1.0);
+
+        fragColor.rgb += traverseUniformGrid(ro, rd, frag_coord, timeX, cam_origin, cam_rotation);
+    }
+
+    fragColor.rgb = sqrt(fragColor.rgb / 4.0 * 0.8);
+
+    return fragColor;
+}
