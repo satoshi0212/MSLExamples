@@ -2353,3 +2353,158 @@ fragment float4 shader_day97(float4 pixPos [[position]],
 
     return float4(color, 1.0);
 }
+
+// MARK: - Day98a
+
+// https://www.shadertoy.com/view/3dlcWl torus
+
+// helpers
+float hash98a(float s) { return fract(sin(s) * 42422.42); }
+float2x2 rot98(float v) { float a = cos(v), b = sin(v); return float2x2(a, b, -b, a); }
+float torus(float3 p, float2 q) { return length(float2(length(p.xz) - q.x, p.y)) - q.y; }
+
+struct MapResult {
+    float value;
+    float3 oGlow;
+};
+
+MapResult map98(float3 p, float time, float id, float3 glow) {
+    p.xy = p.xy * rot(time * 0.1);
+    p.xz = p.xz * rot(time * 0.2);
+
+    float d = length(p);
+    glow += float3(1.0) / (0.1 + d * 200.0);
+
+    float s = 0.25;
+    for (int i = 0; i < 18; i++) {
+        s += 0.25;
+        p.xy = p.xy * rot98(time * 0.05);
+        p.xz = p.xz * rot98(time * 0.1);
+
+        float d2 = torus(p, float2(s, 0.14));
+
+        float intensity = 1.0 / (1.0 + pow(abs(d2 * 15.0), 1.3));
+        if (i == 6 && id == 0.0) {
+            glow += float3(1.0, 0.3, 1.0) * intensity;
+        } else if(i == 15 && id == 1.0) {
+            glow += float3(1.0, 1.0, 0.1) * intensity;
+        } else if(i == 20 && id == 2.0) {
+            glow += float3(0.1, 1.0, 0.1) * intensity;
+        } else if(i == 25 && id == 3.0) {
+            glow += float3(0.1, 1.0, 1.0) * intensity;
+        }
+
+        d = min(d, d2);
+    }
+
+    MapResult ret;
+    ret.value = d;
+    ret.oGlow = glow;
+
+    return ret;
+}
+
+fragment float4 shader_day98a(float4 pixPos [[position]],
+                              constant float2& res [[buffer(0)]],
+                              constant float& time[[buffer(1)]]) {
+
+    float timeX = time + 10.0;
+
+    float2 uv = pixPos.xy / res.xy;
+    float2 v = uv * 2.0 - 1.0;
+    v.x /= res.y / res.x;
+
+    float id = floor(hash98a(floor(time * 5.0 * hash98a(floor(timeX * 0.2)))) * 5.0);
+
+    float3 ro = float3(0.0, 0.0, -10.0);
+    float3 rd = normalize(float3(v, 1.0));
+
+    float3 p = ro + rd;
+    float3 glow = float3(0.0);
+    for (int i = 0; i < 14; i++) {
+        MapResult ret = map98(p, timeX, id, glow);
+        p += rd * ret.value;
+        glow = ret.oGlow;
+    }
+
+    float3 col = glow;
+    col *= pow(uv.x * uv.y * (1.0 - uv.x) * (1.0 - uv.y), 0.8) * 2.0;
+    col = pow(col, float3(1.0 / 2.2));
+
+    return float4(col, 1.0);
+}
+
+// MARK: - Day98b
+
+// https://www.shadertoy.com/view/wsfcDM 集中線
+
+#define ANIMATE 10.0
+#define INV_ANIMATE_FREQ 0.05
+#define RADIUS 1.3
+#define FREQ 10.0
+#define LENGTH 2.0
+#define SOFTNESS 0.1
+#define WEIRDNESS 0.1
+
+#define lofi(x,d) (floor((x)/(d))*(d))
+
+float2 mod98(float2 x, float2 y) {
+    return x - y * floor(x / y);
+}
+
+float hash98b(float2 v) {
+    return fract(sin(dot( v, float2(89.44, 19.36))) * 22189.22);
+}
+
+float iHash(float2 v, float2 r) {
+    float4 h = float4(
+                      hash98b( float2( floor( v * r + float2( 0.0, 0.0 ) ) / r ) ),
+                      hash98b( float2( floor( v * r + float2( 0.0, 1.0 ) ) / r ) ),
+                      hash98b( float2( floor( v * r + float2( 1.0, 0.0 ) ) / r ) ),
+                      hash98b( float2( floor( v * r + float2( 1.0, 1.0 ) ) / r ) )
+                      );
+    float2 ip = float2(smoothstep(
+                                  float2(0.0),
+                                  float2(1.0),
+                                  mod98(v * r, 1.0))
+                       );
+    return mix(
+               mix( h.x, h.y, ip.y ),
+               mix( h.z, h.w, ip.y ),
+               ip.x
+               );
+}
+
+float noise98(float2 v) {
+    float sum = 0.0;
+    for (int i = 1; i < 7; i ++) {
+        sum += iHash(
+                     v + float2(i),
+                     float2(2.0 * pow( 2.0, float(i)))) / pow(2.0, float(i)
+                                                              );
+    }
+    return sum;
+}
+
+fragment float4 shader_day98b(float4 pixPos [[position]],
+                              constant float2& res [[buffer(0)]],
+                              constant float& time[[buffer(1)]],
+                              texture2d<float, access::sample> texture [[texture(1)]]) {
+
+    constexpr sampler s(address::clamp_to_edge, filter::linear);
+
+    float2 uv = (pixPos.xy * 2.0 - res.xy) / res.xy;
+    float2 puv = float2(
+                        WEIRDNESS * length(uv) + ANIMATE * lofi(time, INV_ANIMATE_FREQ),
+                        FREQ * atan2(uv.y, uv.x)
+                        );
+    float value = noise98(puv);
+    value = length(uv) - RADIUS - LENGTH * (value - 0.5);
+    value = smoothstep(-SOFTNESS, SOFTNESS, value);
+
+    float2 uvColor = pixPos.xy / res.xy;
+    float4 color = texture.sample(s, uvColor);
+    float3 ret = mix(value, color.rgb, 0.5);
+    //float3 ret = (1.0 - value) * color.rgb;
+    return float4(ret, 1.0);
+}
