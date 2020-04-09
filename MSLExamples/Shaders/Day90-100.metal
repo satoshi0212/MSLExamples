@@ -3303,3 +3303,148 @@ fragment float4 shader_day99(float4 pixPos [[position]],
 
     return float4(col, 1.0);
 }
+
+// MARK: - Day100
+
+// https://www.shadertoy.com/view/4lfcz4 Snow fall
+
+float2 mod2_100(float2 x, float2 y) {
+    return x - y * floor(x / y);
+}
+
+float2 mod289_2(float2 x) {
+    return float2(mod2_100(x, float2(289.0)));
+}
+
+float3 mod289_3(float3 x) {
+    return float3(mod(x, 289.0));
+}
+
+float3 permute100(float3 x) {
+    return mod289_3(((x * 34.0) + 1.0) * x);
+}
+
+float snoise100(float2 v) {
+    const float4 C = float4(0.211324865405187, 0.366025403784439, -0.577350269189626, 0.024390243902439);
+    float2 i  = floor(v + dot(v, C.yy));
+    float2 x0 = v - i + dot(i, C.xx);
+
+    float2 i1;
+    i1 = (x0.x > x0.y) ? float2(1.0, 0.0) : float2(0.0, 1.0);
+    float4 x12 = x0.xyxy + C.xxzz;
+    x12.xy -= i1;
+
+    i = mod289_2(i);
+    float3 p = permute100(permute100( i.y + float3(0.0, i1.y, 1.0 ))
+                          + i.x + float3(0.0, i1.x, 1.0 ));
+
+    float3 m = max(0.5 - float3(dot(x0, x0), dot(x12.xy, x12.xy), dot(x12.zw, x12.zw)), 0.0);
+    m = m * m;
+    m = m * m;
+
+    float3 x = 2.0 * fract(p * C.www) - 1.0;
+    float3 h = abs(x) - 0.5;
+    float3 ox = floor(x + 0.5);
+    float3 a0 = x - ox;
+
+    m *= 1.79284291400159 - 0.85373472095314 * (a0 * a0 + h * h);
+
+    float3 g;
+    g.x  = a0.x  * x0.x  + h.x  * x0.y;
+    g.yz = a0.yz * x12.xz + h.yz * x12.yw;
+
+    return 130.0 * dot(m, g);
+}
+
+float fbm100(float2 p) {
+    float f = 0.0;
+    float w = 0.5;
+    for (int i = 0; i < 5; i ++) {
+        f += w * snoise100(p);
+        p *= 2.0;
+        w *= 0.5;
+    }
+    return f;
+}
+
+float background(float2 uv, float2 res, float time) {
+    uv.x += 1.0 / res.x - 1.0;
+
+    float2 sunCenter = float2(0.3, 0.9);
+    float suns = clamp(1.2 - distance(uv, sunCenter), 0.0, 1.0);
+    float sunsh = smoothstep(0.85, 0.95, suns);
+
+    float slope = 1.0 - smoothstep(0.55, 0.0, 0.8 + uv.x -2.3 * uv.y);
+
+    float noise = abs(fbm100(uv * 1.5));
+    slope = (noise * 0.2) + (slope - ((1.0 - noise) * slope * 0.1)) * 0.6;
+    slope = clamp(slope, 0.0, 1.0);
+
+    return 0.35 + (slope * (suns + 0.3)) + (sunsh * 0.6);
+}
+
+#define LAYERS 66
+
+#define DEPTH1 .3
+#define WIDTH1 .4
+#define SPEED1 .6
+
+#define DEPTH2 .1
+#define WIDTH2 .3
+#define SPEED2 .1
+
+float snowing(float2 uv, float2 fragCoord, float2 res, float time) {
+    const float3x3 p = float3x3(13.323122, 23.5112, 21.71123, 21.1212, 28.7312, 11.9312, 21.8112, 14.7212, 61.3934);
+    float2 mp = float2(1.0) / res;
+    uv.x += mp.x * 4.0;
+    mp.y *= 0.25;
+    float depth = smoothstep(DEPTH1, DEPTH2, mp.y);
+    float width = smoothstep(WIDTH1, WIDTH2, mp.y);
+    float speed = smoothstep(SPEED1, SPEED2, mp.y);
+    float acc = 0.0;
+    float dof = 5.0 * sin(time * 0.1);
+    for (int i = 0; i < LAYERS; i++) {
+        float fi = float(i);
+        float2 q = uv * (1.0 + fi*depth);
+        float w = width * mod(fi*7.238917,1.0) - width * 0.1 * sin(time * 2.0 + fi);
+        q += float2(q.y * w, speed * time / (1.0 + fi * depth * 0.03));
+        float3 n = float3(floor(q),31.189+fi);
+        float3 m = floor(n)*0.00001 + fract(n);
+        float3 mp = (31415.9+m) / fract(p*m);
+        float3 r = fract(mp);
+        float2 s = abs(mod2_100(q, float2(1.0)) - 0.5 + 0.9 * r.xy -0.45);
+        s += 0.01*abs(2.0*fract(10.*q.yx)-1.);
+        float d = 0.6*max(s.x-s.y,s.x+s.y)+max(s.x,s.y)-.01;
+        float edge = 0.05 +0.05*min(.5*abs(fi-5.-dof),1.);
+        acc += smoothstep(edge,-edge,d)*(r.x/(1.+.02*fi*depth));
+    }
+    return acc;
+}
+
+bool MysteryMountains(float4 c, float2 w, float2 res, float time) {
+    float4 p = float4(w / res, 1, 1) - 0.5, d = p, t;
+    p.z += time * 2.0;
+    for (float i = 1.5; i > 0.3; i-=0.002) {
+        c = float4(1.0, 1.0, 0.9, 9.0) + d.x;
+        if (t.x > p.y * 0.017 + 1.3) return true;
+        p += d;
+    }
+    return false;
+}
+
+fragment float4 shader_day100(float4 pixPos [[position]],
+                              constant float2& res [[buffer(0)]],
+                              constant float& time[[buffer(1)]]) {
+
+    float2 uv = pixPos.xy / res.y;
+
+    float bg = background(uv, res, time);
+    float4 ret = float4(bg * 0.9, bg, bg * 1.1, 1.0);
+
+    uv.y *= -1.0;
+
+    float snowOut = snowing(uv, pixPos.xy, res, time);
+    ret += float4(float3(snowOut), 1.0);
+
+    return ret;
+}
