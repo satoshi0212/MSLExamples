@@ -10,6 +10,7 @@
 		AB5686B724322F5300BEAFB8 /* Day90-100.metal in Sources */ = {isa = PBXBuildFile; fileRef = AB5686B624322F5200BEAFB8 /* Day90-100.metal */; };
 		AB8D96CE24210918007BB143 /* Warehouse.metal in Sources */ = {isa = PBXBuildFile; fileRef = AB8D96CD24210918007BB143 /* Warehouse.metal */; };
 		AB8D96D02423D766007BB143 /* Day80-89.metal in Sources */ = {isa = PBXBuildFile; fileRef = AB8D96CF2423D766007BB143 /* Day80-89.metal */; };
+		AB9A74D4245E86D90062FCBA /* Extra.metal in Sources */ = {isa = PBXBuildFile; fileRef = AB9A74D3245E86D90062FCBA /* Extra.metal */; };
 		ABAE319E240B954700458EA3 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = ABAE319D240B954700458EA3 /* AppDelegate.swift */; };
 		ABAE31A0240B954700458EA3 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = ABAE319F240B954700458EA3 /* SceneDelegate.swift */; };
 		ABAE31A2240B954700458EA3 /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = ABAE31A1240B954700458EA3 /* ViewController.swift */; };
@@ -32,6 +33,7 @@
 		AB5686B624322F5200BEAFB8 /* Day90-100.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; path = "Day90-100.metal"; sourceTree = "<group>"; };
 		AB8D96CD24210918007BB143 /* Warehouse.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; path = Warehouse.metal; sourceTree = "<group>"; };
 		AB8D96CF2423D766007BB143 /* Day80-89.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; path = "Day80-89.metal"; sourceTree = "<group>"; };
+		AB9A74D3245E86D90062FCBA /* Extra.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; path = Extra.metal; sourceTree = "<group>"; };
 		ABAE319A240B954700458EA3 /* MSLExamples.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MSLExamples.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		ABAE319D240B954700458EA3 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		ABAE319F240B954700458EA3 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
@@ -108,6 +110,7 @@
 				ABD20CED24169C0B0026A7CD /* Day70-79.metal */,
 				AB8D96CF2423D766007BB143 /* Day80-89.metal */,
 				AB5686B624322F5200BEAFB8 /* Day90-100.metal */,
+				AB9A74D3245E86D90062FCBA /* Extra.metal */,
 				AB8D96CD24210918007BB143 /* Warehouse.metal */,
 				ABAE31B4240B98D400458EA3 /* VertexShader.metal */,
 				ABAE31B6240B98D400458EA3 /* Common.h */,
@@ -202,6 +205,7 @@
 				ABAE31CA240BC65B00458EA3 /* Day01-30.metal in Sources */,
 				ABAE31B9240B98D400458EA3 /* GPUDevice.swift in Sources */,
 				ABAE31CD240BE19A00458EA3 /* Day60-69.metal in Sources */,
+				AB9A74D4245E86D90062FCBA /* Extra.metal in Sources */,
 				AB8D96CE24210918007BB143 /* Warehouse.metal in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
