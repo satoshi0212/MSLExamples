@@ -3,8 +3,6 @@ Metal Shader Language(MSL) examples.
 
 Twitter: #hundred_days_msl_challenge
 
-### Summary
-
 # Day1 - 10
 
 ---
@@ -74,39 +72,21 @@ https://user-images.githubusercontent.com/5768361/116844535-4ca7e500-ac1e-11eb-9
 
 https://user-images.githubusercontent.com/5768361/116845281-60544b00-ac20-11eb-8be7-7c0d0203c2c9.mp4
 
----
-
 https://user-images.githubusercontent.com/5768361/116845294-6b0ee000-ac20-11eb-951a-8964473d090d.mp4
-
----
 
 https://user-images.githubusercontent.com/5768361/116845302-6fd39400-ac20-11eb-9f16-1d70e2c0efd4.mp4
 
----
-
 https://user-images.githubusercontent.com/5768361/116845306-7235ee00-ac20-11eb-8fe9-47b359ebdc4b.mp4
-
----
 
 https://user-images.githubusercontent.com/5768361/116845307-73671b00-ac20-11eb-8323-98bbad51cb4e.mp4
 
----
-
 https://user-images.githubusercontent.com/5768361/116845315-75c97500-ac20-11eb-826e-538364699efe.mp4
-
----
 
 https://user-images.githubusercontent.com/5768361/116845318-77933880-ac20-11eb-9527-2b4f8cd13315.mp4
 
----
-
 https://user-images.githubusercontent.com/5768361/116845324-78c46580-ac20-11eb-9735-afe876ab0dc6.mp4
 
----
-
 https://user-images.githubusercontent.com/5768361/116845327-795cfc00-ac20-11eb-85d0-2fa9fd49084b.mp4
-
----
 
 https://user-images.githubusercontent.com/5768361/116845331-7b26bf80-ac20-11eb-8154-962ed36cc389.mp4
 
@@ -166,7 +146,6 @@ https://user-images.githubusercontent.com/5768361/116846523-6697f680-ac23-11eb-9
 
 # Day41 - 50
 
-
 https://user-images.githubusercontent.com/5768361/116846568-7f081100-ac23-11eb-88e7-43f355e52c0d.mp4
 
 
@@ -195,4 +174,36 @@ https://user-images.githubusercontent.com/5768361/116846757-0b1a3880-ac24-11eb-9
 
 
 https://user-images.githubusercontent.com/5768361/116846779-15d4cd80-ac24-11eb-8dda-de3587fc675c.mp4
+
+# Day51 - 60
+
+https://user-images.githubusercontent.com/5768361/116847140-e70b2700-ac24-11eb-8ea2-6717c7b7184a.mp4
+
+
+https://user-images.githubusercontent.com/5768361/116847156-f1c5bc00-ac24-11eb-8f2f-646b64de20ab.mp4
+
+
+https://user-images.githubusercontent.com/5768361/116847162-f4281600-ac24-11eb-832a-650bcf97a504.mp4
+
+
+https://user-images.githubusercontent.com/5768361/116847169-f5594300-ac24-11eb-9e56-a6d3a9b6b5a7.mp4
+
+
+https://user-images.githubusercontent.com/5768361/116847170-f7230680-ac24-11eb-946b-ac392350a77e.mp4
+
+
+https://user-images.githubusercontent.com/5768361/116847174-f8ecca00-ac24-11eb-9ce6-e8f526ee041f.mp4
+
+
+https://user-images.githubusercontent.com/5768361/116847177-fa1df700-ac24-11eb-97fb-883ece6130ae.mp4
+
+
+https://user-images.githubusercontent.com/5768361/116847182-fb4f2400-ac24-11eb-8602-09d664dbb58b.mp4
+
+
+https://user-images.githubusercontent.com/5768361/116847183-fbe7ba80-ac24-11eb-9602-cd2a6fbf4966.mp4
+
+
+https://user-images.githubusercontent.com/5768361/116847186-fd18e780-ac24-11eb-9c73-37bee8bed292.mp4
+
 
