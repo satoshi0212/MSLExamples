@@ -326,9 +326,6 @@ https://user-images.githubusercontent.com/5768361/116851845-28ec9b00-ac2e-11eb-8
 
 # Day 91 -100
 
-https://user-images.githubusercontent.com/5768361/116851944-5fc2b100-ac2e-11eb-889e-6b286575f090.mp4
-
-
 https://user-images.githubusercontent.com/5768361/116851973-6fda9080-ac2e-11eb-8f38-2670d470dd9f.mp4
 
 
